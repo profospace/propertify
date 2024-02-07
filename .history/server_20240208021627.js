@@ -11,13 +11,13 @@ app.get('/api/properties', (req, res) => {
 });
 
 app.get('/api/details', (req, res) => {
-    res.json(properties);
+    res.json(dummyDetails);
   });
 
 
 app.get('/api/details', (req, res) => {
     const propertyId = req.query.propertyid;
-    const property = properties.find(detail => detail.post_id === propertyId);
+    const property = dummyDetails.find(detail => detail.post_id === propertyId);
     if (property) {
       res.json(property);
     } else {
