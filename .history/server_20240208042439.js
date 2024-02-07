@@ -2,7 +2,7 @@ const express = require('express');
 const properties = require('./data'); // Import the properties data
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5005;
 
 app.use(express.json());
 
@@ -13,19 +13,6 @@ app.get('/api/properties', (req, res) => {
 app.get('/api/details', (req, res) => {
     res.json(properties);
   });
-
-  // New endpoint to get a specific property by ID
-app.get('/api/details/:id', (req, res) => {
-  const { id } = req.params; // Extract the id from request parameters
-  // Correctly access the properties array and find the property by id
-  const property = properties.REAL_ESTATE_APP.detailList.find(p => p.post_id === id);
-
-  if (property) {
-      res.json(property); // Send back the found property
-  } else {
-      res.status(404).send('Property not found'); // Send 404 if not found
-  }
-});
 
   // Route for getting a specific property by ID
 app.get('/api/details/:id', (req, res) => {
