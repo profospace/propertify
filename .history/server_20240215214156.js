@@ -3,7 +3,7 @@ const properties = require('./data'); // Import the properties data
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5015;
+const PORT = process.env.PORT || 5016;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 

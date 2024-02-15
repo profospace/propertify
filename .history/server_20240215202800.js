@@ -3,14 +3,16 @@ const properties = require('./data'); // Import the properties data
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 5015;
+const PORT = process.env.PORT || 5010;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
 
 
+
+
 // MongoDB Connection
-mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect('mongodb+srv://ofospace:bnmopbnmop@1010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
     useNewUrlParser: true,
     useUnifiedTopology: true
   })
@@ -78,51 +80,6 @@ app.get('/api/properties/filter', (req, res) => {
     console.log(`Found ${filteredProperties.length} properties matching the criteria.`);
     res.json(filteredProperties);
 });
-
-
-// POST endpoint to add a new property
-app.post('/api/properties', async (req, res) => {
-    const property = new Property(req.body);
-    try {
-      const savedProperty = await property.save();
-      res.status(201).json(savedProperty);
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-  
-  // Generic filtering including geospatial query
-  app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0.5 } = req.query;
-    let filter = {};
-    
-    if (bedrooms) filter.bedrooms = Number(bedrooms);
-    if (bathrooms) filter.bathrooms = Number(bathrooms);
-    if (purpose) filter.purpose = purpose;
-    if (priceMin) filter.price = { ...filter.price, $gte: Number(priceMin) };
-    if (priceMax) filter.price = { ...filter.price, $lte: Number(priceMax) };
-  
-    try {
-      let properties = await Property.find(filter);
-  
-      // Apply geospatial filtering if latitude and longitude are provided
-      if (latitude && longitude) {
-        properties = properties.filter(property => {
-          const distance = haversineDistance(
-            { latitude: property.latitude, longitude: property.longitude },
-            { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
-            false // Distance in kilometers
-          );
-          return distance <= parseFloat(radius);
-        });
-      }
-  
-      res.json(properties);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
 
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
