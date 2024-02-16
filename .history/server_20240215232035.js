@@ -3,7 +3,7 @@ const properties = require('./data'); // Import the properties data
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3013;
+const PORT = process.env.PORT || 3010;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -93,7 +93,7 @@ app.post('/api/properties', async (req, res) => {
   
   // Generic filtering including geospatial query
   app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0 } = req.query;
+    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0.5 } = req.query;
     let filter = {};
     
     if (bedrooms) filter.bedrooms = Number(bedrooms);
