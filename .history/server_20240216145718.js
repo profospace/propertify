@@ -3,7 +3,7 @@ const properties = require('./data'); // Import the properties data
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 3013;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -18,8 +18,6 @@ mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mong
   .catch(err => console.error("MongoDB connection error:", err));
 
   
-
-
 
 
 app.use(express.json());
@@ -94,7 +92,7 @@ app.post('/api/properties', async (req, res) => {
   });
   
   app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0.2 } = req.query;
+    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0 } = req.query;
     let filter = {};
     
     // Basic attribute filters
@@ -106,10 +104,6 @@ app.post('/api/properties', async (req, res) => {
 
 
     console.log(`radius recieved ::  ${radius} `);
-    console.log(`latitude recieved ::  ${latitude} `);
-
-    console.log(`longitude recieved ::  ${longitude} `);
-
 
 
     // Adding geospatial query if latitude and longitude are provided
@@ -152,10 +146,4 @@ function haversineDistance(coords1, coords2, isMiles = false) {
   
 
 
-// Initialize the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  // Ensure indexes are built, especially for geospatial queries
-  Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
-});
-
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -106,10 +106,6 @@ const data = {
           "address": "Nana Mava, Rajkot",
           "latitude": "26.47491",
           "longitude": "80.28973",
-          "location": { 
-            "type": "Point", 
-            "coordinates": [80.28973, 26.47491] // [longitude, latitude]
-          },
           "purpose": "Rent",
           "bedrooms": "2",
           "bathrooms": "2",
@@ -140,10 +136,6 @@ const data = {
           "purpose": "Sale",
           "bedrooms": "3",
           "bathrooms": "3",
-          "location": { 
-            "type": "Point", 
-            "coordinates": [80.29613, 26.47536] // [longitude, latitude]
-          },
           "area": "1800 sqft",
           "furnishing": "Unfurnished",
           "amenities": "Community Garden, Playground",

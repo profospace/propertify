@@ -3,7 +3,7 @@ const properties = require('./data'); // Import the properties data
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 3012;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -18,8 +18,6 @@ mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mong
   .catch(err => console.error("MongoDB connection error:", err));
 
   
-
-
 
 
 app.use(express.json());
@@ -93,46 +91,37 @@ app.post('/api/properties', async (req, res) => {
     }
   });
   
+  // Generic filtering including geospatial query
   app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0.2 } = req.query;
+    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0 } = req.query;
     let filter = {};
     
-    // Basic attribute filters
     if (bedrooms) filter.bedrooms = Number(bedrooms);
     if (bathrooms) filter.bathrooms = Number(bathrooms);
     if (purpose) filter.purpose = purpose;
     if (priceMin) filter.price = { ...filter.price, $gte: Number(priceMin) };
     if (priceMax) filter.price = { ...filter.price, $lte: Number(priceMax) };
-
-
-    console.log(`radius recieved ::  ${radius} `);
-    console.log(`latitude recieved ::  ${latitude} `);
-
-    console.log(`longitude recieved ::  ${longitude} `);
-
-
-
-    // Adding geospatial query if latitude and longitude are provided
-    if (latitude && longitude && radius > 0) {
-        const radiusInMeters = parseFloat(radius) * 1000; // Convert radius to meters if needed
-        filter.location = {
-            $nearSphere: {
-                $geometry: {
-                    type: "Point",
-                    coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                },
-                $maxDistance: radiusInMeters
-            }
-        };
-    }
   
     try {
-        let properties = await Property.find(filter);
-        res.json(properties);
+      let properties = await Property.find(filter);
+  
+      // Apply geospatial filtering if latitude and longitude are provided
+      if (latitude && longitude) {
+        properties = properties.filter(property => {
+          const distance = haversineDistance(
+            { latitude: property.latitude, longitude: property.longitude },
+            { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
+            true // Distance in kilometers
+          );
+          return distance <= parseFloat(radius);
+        });
+      }
+  
+      res.json(properties);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
-});
+  });
 
   // Haversine Distance Function for geospatial calculations
 function haversineDistance(coords1, coords2, isMiles = false) {
@@ -152,10 +141,4 @@ function haversineDistance(coords1, coords2, isMiles = false) {
   
 
 
-// Initialize the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  // Ensure indexes are built, especially for geospatial queries
-  Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
-});
-
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
