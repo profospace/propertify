@@ -94,7 +94,7 @@ app.post('/api/properties', async (req, res) => {
   });
   
   app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 0.5 } = req.query;
+    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 1 } = req.query;
     let filter = {};
     
     // Basic attribute filters
