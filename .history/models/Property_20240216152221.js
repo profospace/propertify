@@ -32,6 +32,5 @@ const propertySchema = new mongoose.Schema({
   relatedProperty: [String]
 }, { timestamps: true });
 
-
 propertySchema.index({ location: '2dsphere' }); // Applying 2dsphere index
 module.exports = mongoose.model('Property', propertySchema);
