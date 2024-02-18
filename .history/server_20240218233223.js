@@ -119,10 +119,6 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
     console.log('Files received:', req.files);
 
 
-
-
-
-
     // Convert latitude and longitude to a GeoJSON object
     if (propertyData.latitude && propertyData.longitude) {
       propertyData.location = {
@@ -144,11 +140,11 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
       console.log('Floor plan image path:', propertyData.floor_plan_image);
     }
     if (req.files['galleryList']) {
-      propertyData.galleryList = req.files['galleryList'][0].map(file => file.path);
+      propertyData.galleryList = req.files['galleryList'].map(file => file.path);
       console.log('Gallery images paths:', propertyData.galleryList);
     }
 
-    console.log('just before addition of the property property added successfully:', propertyData);
+    console.log('New property added successfully:', propertyData);
 
 
     // Create and save the new property
