@@ -65,23 +65,33 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
+
+
 // Endpoint to insert a new property with images
 app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1 }, 
  { name: 'floor_plan_image', maxCount: 1 },{ name: 'galleryList', maxCount: 10 }]),async (req, res) => {
 
-
   console.log('Received request to upload a new property.', req.body);
 
-
-   
-
-
   try {
+
+
+    const obj = JSON.parse(JSON.stringify(req.body)); // req.body = [Object: null prototype] { title: 'product' }
+
+    console.log(obj); 
+
+
     // Extract JSON data
     let propertyData = req.body;
-
     // Log received files
+
+
+    console.log('Files received:',obj.str );
+
+
+
     console.log('Files received:', req.files);
+
 
     // Convert latitude and longitude to a GeoJSON object
     if (propertyData.latitude && propertyData.longitude) {
@@ -93,7 +103,7 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
 
 
     console.log('property now after location is added ::: == >> :', propertyData);
-
+    
     // Adjust paths as necessary based on your storage configuration
     if (req.files['post_image']) {
       propertyData.post_image = req.files['post_image'][0].path;
@@ -107,6 +117,9 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
       propertyData.galleryList = req.files['galleryList'].map(file => file.path);
       console.log('Gallery images paths:', propertyData.galleryList);
     }
+
+    console.log('New property added successfully:', propertyData.);
+
 
     // Create and save the new property
     const property = new Property(propertyData);
