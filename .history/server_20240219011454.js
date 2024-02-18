@@ -140,7 +140,7 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
       console.log('Post image path:', propertyData.post_image);
     }
     if (req.files['floor_plan_image']) {
-      propertyData.floor_plan_image = req.files['floor_plan_image'][0].path;
+      propertyData.floor_plan_image = req.files['floor_plan_image'].path;
       console.log('Floor plan image path:', propertyData.floor_plan_image);
     }
     if (req.files['galleryList']) {
