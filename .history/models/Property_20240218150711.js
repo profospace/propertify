@@ -16,8 +16,8 @@ const propertySchema = new mongoose.Schema({
   bedrooms: Number,
   bathrooms: Number,
   location: {
-    type: { type: String, enum: ['Point'], required: false },
-    coordinates: { type: [Number], required: false } // Format: [longitude, latitude]
+    type: { type: String, enum: ['Point'], required: true },
+    coordinates: { type: [Number], required: true } // Format: [longitude, latitude]
   },
   area: String,
   furnishing: String,
