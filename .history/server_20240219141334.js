@@ -8,7 +8,7 @@ bodyParser = require('body-parser');
 const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5012;
+const PORT = process.env.PORT || 3009;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -121,12 +121,12 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
 
 
     // Convert latitude and longitude to a GeoJSON object
-    // if (propertyData.latitude && propertyData.longitude) {
-    //   propertyData.location = {
-    //     type: "Point",
-    //     coordinates: [parseFloat(propertyData.longitude), parseFloat(propertyData.latitude)] // Note the order: [longitude, latitude]
-    //   };
-    // }
+    if (propertyData.latitude && propertyData.longitude) {
+      propertyData.location = {
+        type: "Point",
+        coordinates: [parseFloat(propertyData.longitude), parseFloat(propertyData.latitude)] // Note the order: [longitude, latitude]
+      };
+    }
 
 
 
