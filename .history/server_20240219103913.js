@@ -8,14 +8,13 @@ bodyParser = require('body-parser');
 const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5012;
+const PORT = process.env.PORT || 3017;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
 
 const util = require('util');
 app.use(express.json());
-
 
 app.use(express.urlencoded({ extended : true }));
 app.use(bodyParser.urlencoded({ extended: true}));
@@ -101,38 +100,55 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
 
 
 
-    const obj = JSON.parse(JSON.stringify(req.body.data)); // req.body = [Object: null prototype] { title: 'product' }
+    const obj = JSON.parse(JSON.stringify(req.body)); // req.body = [Object: null prototype] { title: 'product' }
 
 
-    console.log(' location found in the data sent here  obj obj obj ',obj); 
 
     // Extract JSON data
-    let propertyData = JSON.parse(req.body.data || '{}');
+    let propertyData = req.body.data;
     // Log received files
 
-    console.log(' location found in the data sent here propertyData  ',propertyData); 
+    console.log(' location found in the data sent here',req.body.data); 
+
+
+
+
+
+
+    console.log('Files received:', req.files);
+
 
     console.log('Files received:', req.files['post_image']);
+    console.log('Files received: printing path', req.files['post_image'].path);
+    console.log('Files received: destination', req.files['post_image'].path);
 
 
     const postImagePath = req.files['post_image'][0].path;
-    console.log('Files propertyData   :1 =========', postImagePath);
+    console.log('Files postImagePath:1 =========', postImagePath);
     propertyData.post_image = postImagePath
+
+    console.log('Files received:1 =========', propertyData);
+
+
+
+
+
+
+
 
 
     // Convert latitude and longitude to a GeoJSON object
-    // if (propertyData.latitude && propertyData.longitude) {
-    //   propertyData.location = {
-    //     type: "Point",
-    //     coordinates: [parseFloat(propertyData.longitude), parseFloat(propertyData.latitude)] // Note the order: [longitude, latitude]
-    //   };
-    // }
-
-
+    if (propertyData.latitude && propertyData.longitude) {
+      propertyData.location = {
+        type: "Point",
+        coordinates: [parseFloat(propertyData.longitude), parseFloat(propertyData.latitude)] // Note the order: [longitude, latitude]
+      };
+    }
 
 
     console.log('property now after location is added :: :propertyData ', propertyData);
     
+    // Adjust paths as necessary based on your storage configuration
     if (req.files['post_image']) {
       propertyData.post_image = req.files['post_image'][0].path;
       console.log('Post image path:', propertyData.post_image);
