@@ -8,7 +8,7 @@ bodyParser = require('body-parser');
 const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5056;
+const PORT = process.env.PORT || 5055;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
