@@ -8,7 +8,7 @@ bodyParser = require('body-parser');
 const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5056;
+const PORT = process.env.PORT || 5050;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -231,7 +231,7 @@ app.post('/api/properties', async (req, res) => {
 
   app.get('/api/properties/filter', async (req, res) => {
     const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax } = req.query;
-    let radius = req.query.radius ? parseFloat(req.query.radius) : 1; // Use provided radius or default to 0.5
+    let radius = req.query.radius ? parseFloat(req.query.radius) : 0.5; // Use provided radius or default to 0.5
 
     let filter = {};
     

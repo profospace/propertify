@@ -8,7 +8,7 @@ bodyParser = require('body-parser');
 const multer = require('multer');
 
 const app = express();
-const PORT = process.env.PORT || 5056;
+const PORT = process.env.PORT || 5013;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
@@ -227,66 +227,8 @@ app.post('/api/properties', async (req, res) => {
       res.status(400).json({ message: error.message });
     }
   });
-
-
+  
   app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax } = req.query;
-    let radius = req.query.radius ? parseFloat(req.query.radius) : 1; // Use provided radius or default to 0.5
-
-    let filter = {};
-    
-    // Basic attribute filters
-    if (bedrooms) {
-        filter.bedrooms = Number(bedrooms);
-        console.log(`Filtering by bedrooms: ${bedrooms}`);
-    }
-    if (bathrooms) {
-        filter.bathrooms = Number(bathrooms);
-        console.log(`Filtering by bathrooms: ${bathrooms}`);
-    }
-    if (purpose) {
-        filter.purpose = purpose;
-        console.log(`Filtering by purpose: ${purpose}`);
-    }
-    if (priceMin) {
-        filter.price = { ...filter.price, $gte: Number(priceMin) };
-        console.log(`Filtering with priceMin: ${priceMin}`);
-    }
-    if (priceMax) {
-        filter.price = { ...filter.price, $lte: Number(priceMax) };
-        console.log(`Filtering with priceMax: ${priceMax}`);
-    }
-
-    // Adding geospatial query if latitude and longitude are provided
-    if (latitude && longitude) {
-        const radiusInMeters = radius * 1000; // Convert radius to meters
-        filter.location = {
-            $nearSphere: {
-                $geometry: {
-                    type: "Point",
-                    coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                },
-                $maxDistance: radiusInMeters
-            }
-        };
-        console.log(`Adding geospatial filter with radius: ${radius} km, latitude: ${latitude}, longitude: ${longitude}`);
-    }
-  
-    try {
-        console.log('Executing property search with filter:', filter);
-        let properties = await Property.find(filter);
-        console.log(`Found ${properties.length} properties matching filter`);
-        res.json(properties);
-    } catch (error) {
-        console.error('Error fetching properties:', error);
-        res.status(500).json({ message: error.message });
-    }
-});
-
-
-
-  
-  app.get('/api/properties/filtero', async (req, res) => {
     const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 10 } = req.query;
     let filter = {};
     
