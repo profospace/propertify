@@ -292,7 +292,7 @@ app.post('/api/properties', async (req, res) => {
     const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax, radius = 10 } = req.query;
     let filter = {};
     
-    // Basic attribute filters
+    // Basic attribute filtersa
     if (bedrooms) filter.bedrooms = Number(bedrooms);
     if (bathrooms) filter.bathrooms = Number(bathrooms);
     if (purpose) filter.purpose = purpose;
