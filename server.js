@@ -31,8 +31,6 @@ mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mong
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.error("MongoDB connection error:", err));
 
-  
-
 
 // Ensure the uploads directory exists
 const fs = require('fs');
@@ -56,22 +54,6 @@ app.get('/api/update_properties', async (req, res) => {
       console.error("Error updating properties:", error);
       res.status(500).send("Internal Server Error");
   }
-});
-
-
-
-app.get('/api/properties', (req, res) => {
-    res.json(properties);
-});
-
-app.get('/api/details', (req, res) => {
-    res.json(properties);
-  });
-
-
-  app.get('/api/properties', (req, res) => {
-    console.log("Fetching all properties");
-    res.json(properties.REAL_ESTATE_APP.properties);
 });
 
 
@@ -132,12 +114,9 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
     // }
 
 
-
     propertyData.post_id =  generateRandomPostId()
-
-
     console.log('property now after location is added :: :propertyData ', propertyData);
-    
+  
     if (req.files['post_image']) {
       propertyData.post_image = req.files['post_image'][0].path;
       console.log('Post image path:', propertyData.post_image);
