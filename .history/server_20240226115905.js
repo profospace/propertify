@@ -97,20 +97,34 @@ const upload = multer({ storage: storage });
 
 
 // Endpoint to insert a new property with images
-app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1 }, { 
-  
-  name: 'floor_plan_image', maxCount: 1 },{ name: 'galleryList', maxCount: 10 }]),async (req, res) => {
+app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1 }, 
+
+ { name: 'floor_plan_image', maxCount: 1 },{ name: 'galleryList', maxCount: 10 }]),async (req, res) => {
 
 
 
   console.log('Received request to upload a new property.', req.body);
 
   try {
+
+
+
     console.log(util.inspect(req.body, {showHidden: false, depth: null, colors: true}));
+
+
+
     console.log('data is present here data printing :: ==>> ',req.body.data)
+
+
     console.log('req.body, null sent here data printing ::',JSON.stringify(req.body, null, 2));
+
+
+
     const obj = JSON.parse(JSON.stringify(req.body.data)); // req.body = [Object: null prototype] { title: 'product' }
+
+
     console.log(' location found in the data sent here  obj obj obj ',obj); 
+
     // Extract JSON data
     let propertyData = JSON.parse(req.body.data || '{}');
     // Log received files
@@ -134,8 +148,6 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
     // }
 
 
-
-    propertyData.post_id =  generateRandomPostId()
 
 
     console.log('property now after location is added :: :propertyData ', propertyData);
@@ -171,10 +183,6 @@ app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1
 
 
 
-// Generate a random post_id
-function generateRandomPostId() {
-  return Math.random().toString(36).substr(2, 9);
-}
 
 // Endpoint to fetch property details by ID
 app.get('/api/details/:id', async (req, res) => {
