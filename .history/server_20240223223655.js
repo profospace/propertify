@@ -217,20 +217,6 @@ app.get('/api/properties/filters', (req, res) => {
 });
 
 
-// Endpoint to return all properties from MongoDB
-app.get('/api/properties/all', async (req, res) => {
-  try {
-      // Fetch all properties from the MongoDB collection
-      const allProperties = await Property.find();
-      res.json(allProperties); // Return the properties as JSON
-  } catch (error) {
-      console.error('Error fetching properties from MongoDB:', error);
-      res.status(500).json({ message: 'Error fetching properties from MongoDB' });
-  }
-});
-
-
-
 // POST endpoint to add a new property
 app.post('/api/properties', async (req, res) => {
     const property = new Property(req.body);
