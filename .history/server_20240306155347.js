@@ -93,7 +93,7 @@ const upload = multer({ storage: storage });
 
 
 // Endpoint to insert a new property with images
-app.post('/api/upload/propertys',upload.fields([{ name: 'post_image', maxCount: 1 }, { 
+app.post('/api/upload/property',upload.fields([{ name: 'post_image', maxCount: 1 }, { 
   
   name: 'floor_plan_image', maxCount: 1 },{ name: 'galleryList', maxCount: 10 }]),async (req, res) => {
 
