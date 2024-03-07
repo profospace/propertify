@@ -184,6 +184,7 @@ app.post('/api/upload/property', upload.fields([
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: `post_images/${uuid.v4()}_${postImageFile.originalname}`,
         Body: fs.createReadStream(postImageFile.path),
+        ACL: 'public-read'
       };
       const postImageUploadResult = await s3.upload(postImageParams).promise();
       uploadedImages.push(postImageUploadResult.Location);
@@ -196,6 +197,7 @@ app.post('/api/upload/property', upload.fields([
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: `floor_plan_images/${uuid.v4()}_${floorPlanImageFile.originalname}`,
         Body: fs.createReadStream(floorPlanImageFile.path),
+        ACL: 'public-read'
       };
       const floorPlanImageUploadResult = await s3.upload(floorPlanImageParams).promise();
       uploadedImages.push(floorPlanImageUploadResult.Location);
