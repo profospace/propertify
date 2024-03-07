@@ -58,13 +58,11 @@ if (!fs.existsSync(uploadsDir)) {
   console.log('Created the uploads directory.');
 }
 
-
-
 app.get('/api/update_properties', async (req, res) => {
   try {
       const propertiesWithoutPostId = await Property.find({ post_id: null });
       propertiesWithoutPostId.forEach(async property => {
-          property.post_id = generatePostId();
+          property.post_id = generateRandomPostId();
           await property.save();
           console.log(`Property with missing post_id updated. New post_id: ${property.post_id}`);
       });
@@ -77,51 +75,7 @@ app.get('/api/update_properties', async (req, res) => {
 
 
 
-function generatePostId() {
-  const maxDigits = 13;
-  const maxNumber = Math.pow(10, maxDigits) - 1; // Maximum 13-digit number
-  const minNumber = Math.pow(10, maxDigits - 1); // Minimum 13-digit number
-
-  // Generate a random integer within the specified range
-  const postId = Math.floor(Math.random() * (maxNumber - minNumber + 1)) + minNumber;
-
-  return postId;
-}
-
-
-
-
-// Endpoint to fetch property details by ID ==============//
-
-
-app.get('/api/details/:id', async (req, res) => {
-  console.log(`Fetching details for property with ID: ${req.params.id}`);
-  const propertyId = req.params.id;
-
-  try {
-      // Use findOne to get the property document with the matching post_id
-      const property = await Property.findOne({ post_id: propertyId });
-
-      if (property) {
-          res.json(property);
-      } else {
-          res.status(404).send('Property not found');
-      }
-  } catch (error) {
-      console.error(`Error fetching property with ID ${propertyId}:`, error);
-      res.status(500).send('Error fetching property details');
-  }
-});
-
-
-
-
-
-
-
-// Set up multer for file storage =====================// 
-
-
+// Set up multer for file storage
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, 'uploads/') // Make sure this path exists
@@ -138,28 +92,7 @@ const upload = multer({ storage: storage });
 
 
 
-
-// Endpoint to return all properties from MongoDB =====================//
-
-
-app.get('/api/properties/all', async (req, res) => {
-  try {
-      // Fetch all properties from the MongoDB collection
-      const allProperties = await Property.find();
-      res.json(allProperties); // Return the properties as JSON
-  } catch (error) {
-      console.error('Error fetching properties from MongoDB:', error);
-      res.status(500).json({ message: 'Error fetching properties from MongoDB' });
-  }
-});
-
-
-
-
-
-
-
-// Endpoint to upload a new property with images ===============================//
+// Endpoint to upload a new property with images
 app.post('/api/upload/property', upload.fields([
   { name: 'post_image', maxCount: 1 }, 
   { name: 'floor_plan_image', maxCount: 1 }, 
@@ -229,18 +162,58 @@ app.post('/api/upload/property', upload.fields([
   }
 });
 
+function generatePostId() {
+  const maxDigits = 13;
+  const maxNumber = Math.pow(10, maxDigits) - 1; // Maximum 13-digit number
+  const minNumber = Math.pow(10, maxDigits - 1); // Minimum 13-digit number
+
+  // Generate a random integer within the specified range
+  const postId = Math.floor(Math.random() * (maxNumber - minNumber + 1)) + minNumber;
+
+  return postId;
+}
 
 
 
+// Generate a random post_id
+function generateRandomPostId() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+// Endpoint to fetch property details by ID
+app.get('/api/details/:id', async (req, res) => {
+  console.log(`Fetching details for property with ID: ${req.params.id}`);
+  const propertyId = req.params.id;
+
+  try {
+      // Use findOne to get the property document with the matching post_id
+      const property = await Property.findOne({ post_id: propertyId });
+
+      if (property) {
+          res.json(property);
+      } else {
+          res.status(404).send('Property not found');
+      }
+  } catch (error) {
+      console.error(`Error fetching property with ID ${propertyId}:`, error);
+      res.status(500).send('Error fetching property details');
+  }
+});
 
 
+// Endpoint to return all properties from MongoDB
+app.get('/api/properties/all', async (req, res) => {
+  try {
+      // Fetch all properties from the MongoDB collection
+      const allProperties = await Property.find();
+      res.json(allProperties); // Return the properties as JSON
+  } catch (error) {
+      console.error('Error fetching properties from MongoDB:', error);
+      res.status(500).json({ message: 'Error fetching properties from MongoDB' });
+  }
+});
 
 
-
-
-
-
-/// filter code ========= // 
 
   app.get('/api/properties/filter', async (req, res) => {
     const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax ,type_name} = req.query;
