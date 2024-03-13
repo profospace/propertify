@@ -139,7 +139,7 @@ app.get('/api/details/:id', async (req, res) => {
   tracker.pageview(req.originalUrl).send();
 
   const userId = req.params.id; // Assuming ID can be used as the user ID
-  const eventName = 'property id';
+  const eventName = 'API_Details_Request';
   const eventProperties = { id: req.params.id };
 
   // Call the common function to send event data to Amplitude
