@@ -11,7 +11,7 @@ const app = express();
 const cors = require('cors'); // Import the cors middleware
 const User = require('./models/User'); // Import the User model
 
-const PORT = process.env.PORT || 5050;
+const PORT = process.env.PORT || 5051;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 
