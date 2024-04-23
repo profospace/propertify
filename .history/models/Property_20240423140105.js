@@ -14,7 +14,6 @@ const propertySchema = new mongoose.Schema({
   agreement:String,
   priceUnit:String,
   areaUnit:String,
-  usp:[String],
   contactList:[Number],
   latitude: Number,
   longitude: Number,
@@ -38,5 +37,9 @@ const propertySchema = new mongoose.Schema({
   relatedProperty: [String]
 }, { timestamps: true });
 
-propertySchema.index({ location: '2dsphere' });
+
+
+
+propertySchema.index({ location: '2dsphere' }); // Applying 2dsphere index
+
 module.exports = mongoose.model('Property', propertySchema);
