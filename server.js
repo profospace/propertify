@@ -73,6 +73,25 @@ s3.listBuckets((err, data) => {
 });
 
 
+const colorGradientData = {
+  header: {
+    startColor: '#abcdef',
+    endColor: '#fedcba'
+  },
+  button: {
+    startColor: '#ee0979',
+    endColor: '#ff6a00'
+  }
+};
+
+// Define your API endpoint
+app.get('/api/colors', (req, res) => {
+  // Send the color gradient data JSON object
+  res.json(colorGradientData);
+});
+
+
+
 // MongoDB Connection
 mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
     useNewUrlParser: true,
