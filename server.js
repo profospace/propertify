@@ -90,19 +90,21 @@ app.get('/api/colors', (req, res) => {
   res.json(colorGradientData);
 });
 
-
 // Define a route to update the color gradient data
 app.post('/api/colors/update', (req, res) => {
   const updatedColorData = req.body;
+  console.log('Received request body:', updatedColorData); // Log the received data
   if (updatedColorData) {
-    colorGradientData = updatedColorData;
+    // Update the properties of colorGradientData
+    colorGradientData.header.startColor = updatedColorData.header.startColor;
+    colorGradientData.header.endColor = updatedColorData.header.endColor;
+    colorGradientData.button.startColor = updatedColorData.button.startColor;
+    colorGradientData.button.endColor = updatedColorData.button.endColor;
     res.status(200).json({ message: 'Color gradient data updated successfully' });
   } else {
     res.status(400).json({ error: 'Invalid color data' });
   }
 });
-
-
 
 
 // MongoDB Connection
