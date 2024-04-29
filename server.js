@@ -39,11 +39,12 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
     const { name, email, socialId, loginType } = req.body;
     console.log('Received user details:', { name, email, socialId, loginType });
     const newUser = new User({ name, email, socialId, loginType });
+      
+    // Save the user to the database and get the generated ID
     await newUser.save();
-    console.log('User details saved successfully');
-    
-    // Prepare the response in the specified format
-    const response = {
+    const userId = newUser._id;
+    console.log('User details saved successfully. User ID:', userId);
+        const response = {
       status_code: '200',
       success: 'true',
       msg: 'User details saved successfully',
@@ -281,11 +282,6 @@ app.get('/api/properties/all', async (req, res) => {
 });
 
 
-
-
-
-
-
 // Endpoint to upload a new property with images ===============================//
 app.post('/api/upload/property', upload.fields([
   { name: 'post_image', maxCount: 1 }, 
@@ -355,13 +351,6 @@ app.post('/api/upload/property', upload.fields([
     res.status(400).send(error.message);
   }
 });
-
-
-
-
-
-
-
 
 
 
