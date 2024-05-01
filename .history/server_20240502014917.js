@@ -36,9 +36,8 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
     const { name, email, socialId, loginType } = req.body;
     console.log('Received user details:', { name, email, socialId, loginType });
-     _id = new mongoose.Types.ObjectId();
-    const newUser = new User({_id, name, email, socialId, loginType });
-    console.log('saved user details:', newUser);
+    const newUser = new User({ name, email, socialId, loginType });
+      
     // Save the user to the database and get the generated ID
     await newUser.save();
     const userId = newUser._id;
@@ -271,6 +270,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+
+
+
+
+
+// Endpoint to return all properties from MongoDB =====================//
 
 
 app.get('/api/properties/all', async (req, res) => {
@@ -562,3 +567,4 @@ app.listen(PORT, () => {
   // Ensure indexes are built, especially for geospatial queries
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
+
