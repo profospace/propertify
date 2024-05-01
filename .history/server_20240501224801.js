@@ -14,6 +14,8 @@ const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
 
+
+
 const util = require('util');
 
  //amplitude = new Amplitude('d184c07aebb3ba13b3af67456641080f')
@@ -36,9 +38,8 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
     const { name, email, socialId, loginType } = req.body;
     console.log('Received user details:', { name, email, socialId, loginType });
-     _id = new mongoose.Types.ObjectId();
-    const newUser = new User({_id, name, email, socialId, loginType });
-    console.log('saved user details:', newUser);
+    const newUser = new User({ name, email, socialId, loginType });
+      
     // Save the user to the database and get the generated ID
     await newUser.save();
     const userId = newUser._id;
@@ -124,6 +125,8 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('Created the uploads directory.');
 }
+
+
 
 async function getLocationFromIP(ipAddress) {
   try {
@@ -259,6 +262,10 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 
 
 
+
+// Set up multer for file storage =====================// 
+
+
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, 'uploads/') // Make sure this path exists
@@ -271,6 +278,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+
+
+
+
+
+// Endpoint to return all properties from MongoDB =====================//
 
 
 app.get('/api/properties/all', async (req, res) => {
@@ -562,3 +575,4 @@ app.listen(PORT, () => {
   // Ensure indexes are built, especially for geospatial queries
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
+

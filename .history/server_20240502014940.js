@@ -36,9 +36,8 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
     const { name, email, socialId, loginType } = req.body;
     console.log('Received user details:', { name, email, socialId, loginType });
-     _id = new mongoose.Types.ObjectId();
-    const newUser = new User({_id, name, email, socialId, loginType });
-    console.log('saved user details:', newUser);
+    const newUser = new User({ name, email, socialId, loginType });
+      
     // Save the user to the database and get the generated ID
     await newUser.save();
     const userId = newUser._id;
