@@ -72,6 +72,7 @@ s3.listBuckets((err, data) => {
   }
 });
 
+
 const colorGradientData = {
   header: {
     startColor: '#ee0979',
@@ -80,23 +81,7 @@ const colorGradientData = {
   button: {
     startColor: '#ee0979',
     endColor: '#ff6a00'
-  },
-  buttonBackground: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  list_title_size: {
-    color: '#333333', // Change this color as needed
-    backgroundColor: '#f2f2f2' // Change this color as needed
-  },
-  listbackground: {
-    backgroundColor: '#ffffff' // Change this color as needed
-  },
-  search_filter: {
-    backgroundColor: '#eeeeee' // Change this color as needed
-  },
-  list_price_size: 14,
-  markerColor: '#FF5733' // Change this color as needed
+  }
 };
 
 // Define your API endpoint
