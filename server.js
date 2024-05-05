@@ -393,6 +393,12 @@ app.post('/api/upload/property', upload.fields([
     }
 
 
+    // If building ID is available, start the post ID with 'b'
+    if (propertyData.building_id) {
+      propertyData.post_id = 'b' + propertyData.post_id;
+    }
+
+
     // Save the property data to MongoDB
     const property = new Property(propertyData);
     await property.save();
