@@ -318,6 +318,9 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 
 
 
+
+
+
 app.get('/api/properties/all', async (req, res) => {
   try {
       // Fetch all properties from the MongoDB collection

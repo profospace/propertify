@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const propertySchema = new mongoose.Schema({
   post_id: String,
   type_id: String,
+  user_id:String,
+  building_id:String,
   type_name: String,
   user_name: String,
   user_image: String,
@@ -10,6 +12,12 @@ const propertySchema = new mongoose.Schema({
   post_description: String,
   phone: String,
   address: String,
+  floor:String,
+  agreement:String,
+  priceUnit:String,
+  areaUnit:String,
+  usp:[String],
+  contactList:[Number],
   latitude: Number,
   longitude: Number,
   purpose: String,
@@ -20,6 +28,7 @@ const propertySchema = new mongoose.Schema({
     coordinates: { type: [Number], required: false } // Format: [longitude, latitude]
   },
   area: String,
+  anyConstraint:[Number],
   furnishing: String,
   amenities: [String],
   price: Number,
@@ -32,9 +41,5 @@ const propertySchema = new mongoose.Schema({
   relatedProperty: [String]
 }, { timestamps: true });
 
-
-
-
-propertySchema.index({ location: '2dsphere' }); // Applying 2dsphere index
-
+propertySchema.index({ location: '2dsphere' });
 module.exports = mongoose.model('Property', propertySchema);
