@@ -318,6 +318,9 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 
 
 
+
+
+
 app.get('/api/properties/all', async (req, res) => {
   try {
       // Fetch all properties from the MongoDB collection
@@ -329,12 +332,20 @@ app.get('/api/properties/all', async (req, res) => {
   }
 });
 
-app.post('/api/buildings/saveBuildingDetails',upload.fields([{ name: 'galleryList', maxCount: 5 }]), async (req, res) => {
-  
+app.post('/api/buildings/saveBuildingDetails',
+
+upload.fields([
+  { name: 'galleryList', maxCount: 5 }
+]),
+
+async (req, res) => {
   try {
+
     const BuildingData = JSON.parse(req.body.data || '{}');
     const uploadedImages = [];
     
+    // Process and upload photos to S3
+   // Upload gallery images to S3
    if (req.files['galleryList']) {
     for (const galleryImageFile of req.files['galleryList']) {
       const galleryImageParams = {
@@ -347,12 +358,15 @@ app.post('/api/buildings/saveBuildingDetails',upload.fields([{ name: 'galleryLis
     }
   }
 
-  BuildingData.photos = uploadedImages[0]  
+
+    BuildingData.photos = uploadedImages[0]
+    
     // Create a new Building object with the details
     const newBuilding = new Building(BuildingData);
 
     // Save the building to the database
     await newBuilding.save();
+
     // Return the saved building object in the response
     res.status(201).json(newBuilding);
   } catch (error) {

@@ -154,6 +154,7 @@ app.post('/api/buildings/saveBuildingDetails', upload.array('photos', 5), async 
         photos.push(photoUploadResult.Location);
       }
     }
+
     
     // Create a new Building object with the details
     const newBuilding = new Building({ buildingId, name, location, photos, frontRoad, parkingArea });
@@ -168,6 +169,7 @@ app.post('/api/buildings/saveBuildingDetails', upload.array('photos', 5), async 
     res.status(500).json({ error: 'Error saving building details' });
   }
 });
+
 
 
 // MongoDB Connection
@@ -262,10 +264,14 @@ function generatePostId() {
 }
 
 
+
+
 // Endpoint to fetch property details by ID ==============//
 
 
 app.get('/api/details/:id', async (req, res) => {
+
+
    const clientIp = req.ip;
    const locationData = await getLocationFromIP(clientIp);
    const { city, region, country } = locationData;
@@ -318,6 +324,9 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 
 
 
+
+
+
 app.get('/api/properties/all', async (req, res) => {
   try {
       // Fetch all properties from the MongoDB collection
@@ -326,38 +335,6 @@ app.get('/api/properties/all', async (req, res) => {
   } catch (error) {
       console.error('Error fetching properties from MongoDB:', error);
       res.status(500).json({ message: 'Error fetching properties from MongoDB' });
-  }
-});
-
-app.post('/api/buildings/saveBuildingDetails',upload.fields([{ name: 'galleryList', maxCount: 5 }]), async (req, res) => {
-  
-  try {
-    const BuildingData = JSON.parse(req.body.data || '{}');
-    const uploadedImages = [];
-    
-   if (req.files['galleryList']) {
-    for (const galleryImageFile of req.files['galleryList']) {
-      const galleryImageParams = {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: `gallery_images/${uuid.v4()}_${galleryImageFile.originalname}`,
-        Body: fs.createReadStream(galleryImageFile.path),
-      };
-      const galleryImageUploadResult = await s3.upload(galleryImageParams).promise();
-      uploadedImages.push(galleryImageUploadResult.Location);
-    }
-  }
-
-  BuildingData.photos = uploadedImages[0]  
-    // Create a new Building object with the details
-    const newBuilding = new Building(BuildingData);
-
-    // Save the building to the database
-    await newBuilding.save();
-    // Return the saved building object in the response
-    res.status(201).json(newBuilding);
-  } catch (error) {
-    console.error('Error saving building details:', error);
-    res.status(500).json({ error: 'Error saving building details' });
   }
 });
 
@@ -417,6 +394,12 @@ app.post('/api/upload/property', upload.fields([
 
     if (!propertyData.post_id) {
       propertyData.post_id = generatePostId(); // Generate a new post_id
+    }
+
+
+    // If building ID is available, start the post ID with 'b'
+    if (propertyData.building_id) {
+      propertyData.post_id = 'b' + propertyData.post_id;
     }
 
 
