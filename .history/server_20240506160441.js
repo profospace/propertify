@@ -344,7 +344,7 @@ app.get('/api/buildings', async (req, res) => {
     // Retrieve all buildings from the database
     const buildings = await Building.find();
 
-    console.log(' building fetched :', buildings);
+    // Send the building data as JSON response
     res.status(200).json(buildings);
   } catch (error) {
     console.error('Error fetching building data:', error);
