@@ -353,7 +353,7 @@ app.get('/api/buildings', async (req, res) => {
 });
 
 // Route to remove buildings with no name
-app.delete('/api/removeBuilding', async (req, res) => {
+app.delete('/api/buildings', async (req, res) => {
   try {
       // Delete buildings where name is not present
       await Building.deleteMany({ name: { $exists: false } });
