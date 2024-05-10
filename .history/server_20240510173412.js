@@ -390,20 +390,9 @@ app.get('/api/removeBuilding', async (req, res) => {
 });
 
 
-app.get('/api/buildings/:buildingId', async (req, res) => {
+app.get('/api/getBuilding/:buildingId', async (req, res) => {
   try {
-    // Extract the buildingId from the request parameters
-    const buildingId = req.params.buildingId;
-
-    // Check if the buildingId is not provided or empty
-    if (!buildingId) {
-      return res.status(400).json({ error: 'Building ID is required' });
-    }
-
-    // Check if the buildingId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(buildingId)) {
-      return res.status(400).json({ error: 'Invalid building ID' });
-    }
+    const { buildingId } = req.params;
 
     // Find the building by its ID
     const building = await Building.findById(buildingId);
@@ -419,7 +408,6 @@ app.get('/api/buildings/:buildingId', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 
 
