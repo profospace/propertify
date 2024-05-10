@@ -390,6 +390,26 @@ app.get('/api/removeBuilding', async (req, res) => {
 });
 
 
+app.get('/api/getBuilding/:buildingId', async (req, res) => {
+  try {
+    const { buildingId } = req.params;
+
+    // Find the building by its ID
+    const building = await Building.findById(buildingId);
+
+    // If building is found, return it
+    if (building) {
+      res.json(building);
+    } else {
+      res.status(404).json({ error: 'Building not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching building:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 
 
 // Endpoint to upload a new property with images ===============================//
