@@ -14,6 +14,8 @@ const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
 const Building = require('./Building'); // Import the User model
+const constantData = require('./models/ConstantModel');
+
 
 
 const util = require('util');
@@ -77,6 +79,9 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   }
 });
 
+
+
+
 // Check if S3 is connected
 s3.listBuckets((err, data) => {
   if (err) {
@@ -85,6 +90,21 @@ s3.listBuckets((err, data) => {
     console.log("Connected to AWS S3. Buckets:", data.Buckets);
   }
 });
+
+
+const additionalUrls = [
+  "https://additional-example1.com",
+  "https://additional-example2.com",
+  "https://additional-example3.com"
+];
+
+constantData.homeUrls.push(...additionalUrls);
+
+// Define a route to return the constant data
+app.get('/constant', (req, res) => {
+  res.json(constantData);
+});
+
 
 const colorGradientData = {
   header: {
