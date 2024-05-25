@@ -13,11 +13,25 @@ const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
+const Building = require('./Building'); // Import the User model
+const constantData = require('./models/ConstantModel');
 
 
 
 const util = require('util');
 
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/') // Make sure this path exists
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname)
+  }
+});
+
+
+const upload = multer({ storage: storage });
  //amplitude = new Amplitude('d184c07aebb3ba13b3af67456641080f')
 
 amplitude.init('d184c07aebb3ba13b3af67456641080f');
@@ -38,12 +52,14 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
     const { name, email, socialId, loginType } = req.body;
     console.log('Received user details:', { name, email, socialId, loginType });
-    const newUser = new User({ name, email, socialId, loginType });
+     _id = new mongoose.Types.ObjectId();
+    const newUser = new User({_id, name, email, socialId, loginType });
+    console.log('saved user details:', newUser);
+    // Save the user to the database and get the generated ID
     await newUser.save();
-    console.log('User details saved successfully');
-    
-    // Prepare the response in the specified format
-    const response = {
+    const userId = newUser._id;
+    console.log('User details saved successfully. User ID:', userId);
+        const response = {
       status_code: '200',
       success: 'true',
       msg: 'User details saved successfully',
@@ -63,6 +79,9 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   }
 });
 
+
+
+
 // Check if S3 is connected
 s3.listBuckets((err, data) => {
   if (err) {
@@ -73,15 +92,45 @@ s3.listBuckets((err, data) => {
 });
 
 
+const additionalUrls = [
+  "https://additional-example1.com",
+  "https://additional-example2.com",
+  "https://additional-example3.com"
+];
+
+constantData.homeUrls.push(...additionalUrls);
+
+// Define a route to return the constant data
+app.get('/constant', (req, res) => {
+  res.json(constantData);
+});
+
+
 const colorGradientData = {
   header: {
-    startColor: '#abcdef',
-    endColor: '#fedcba'
+    startColor: '#ee0979',
+    endColor: '#ff6a00'
   },
   button: {
     startColor: '#ee0979',
     endColor: '#ff6a00'
-  }
+  },
+  buttonBackground: {
+    startColor: '#ee0979',
+    endColor: '#ff6a00'
+  },
+  list_title_size: {
+    color: '#333333', // Change this color as needed
+    backgroundColor: '#f2f2f2' // Change this color as needed
+  },
+  listbackground: {
+    backgroundColor: '#ffffff' // Change this color as needed
+  },
+  search_filter: {
+    backgroundColor: '#eeeeee' // Change this color as needed
+  },
+  list_price_size: 14,
+  markerColor: '#FF5733' // Change this color as needed
 };
 
 // Define your API endpoint
@@ -89,6 +138,24 @@ app.get('/api/colors', (req, res) => {
   // Send the color gradient data JSON object
   res.json(colorGradientData);
 });
+
+// Define a route to update the color gradient data
+app.post('/api/colors/update', (req, res) => {
+  const updatedColorData = req.body;
+  console.log('Received request body:', updatedColorData); // Log the received data
+  if (updatedColorData) {
+    // Update the properties of colorGradientData
+    colorGradientData.header.startColor = updatedColorData.header.startColor;
+    colorGradientData.header.endColor = updatedColorData.header.endColor;
+    colorGradientData.button.startColor = updatedColorData.button.startColor;
+    colorGradientData.button.endColor = updatedColorData.button.endColor;
+    res.status(200).json({ message: 'Color gradient data updated successfully' });
+  } else {
+    res.status(400).json({ error: 'Invalid color data' });
+  }
+});
+
+
 
 
 
@@ -109,8 +176,6 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log('Created the uploads directory.');
 }
-
-
 
 async function getLocationFromIP(ipAddress) {
   try {
@@ -186,14 +251,10 @@ function generatePostId() {
 }
 
 
-
-
 // Endpoint to fetch property details by ID ==============//
 
 
 app.get('/api/details/:id', async (req, res) => {
-
-
    const clientIp = req.ip;
    const locationData = await getLocationFromIP(clientIp);
    const { city, region, country } = locationData;
@@ -225,33 +286,25 @@ app.get('/api/details/:id', async (req, res) => {
   }
 });
 
+// Endpoint to fetch properties by user ID
+app.get('/api/properties/user/:userId', async (req, res) => {
+  const userId = req.params.userId;
 
+  try {
+      // Use find to get all properties with the matching user_id
+      const properties = await Property.find({ user_id: userId });
 
-
-
-
-
-// Set up multer for file storage =====================// 
-
-
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/') // Make sure this path exists
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname)
+      if (properties.length > 0) {
+          res.json(properties);
+      } else {
+          res.status(404).send('No properties found for the specified user ID');
+      }
+  } catch (error) {
+      console.error(`Error fetching properties for user ID ${userId}:`, error);
+      res.status(500).send('Error fetching properties');
   }
 });
 
-const upload = multer({ storage: storage });
-
-
-
-
-
-
-// Endpoint to return all properties from MongoDB =====================//
 
 
 app.get('/api/properties/all', async (req, res) => {
@@ -264,7 +317,123 @@ app.get('/api/properties/all', async (req, res) => {
       res.status(500).json({ message: 'Error fetching properties from MongoDB' });
   }
 });
+app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryList', maxCount: 5 }]), async (req, res) => {
+  try {
+    console.log('Received request to save building details');
+    
+    const BuildingData = JSON.parse(req.body.data || '{}');
+    console.log('Parsed building data:', BuildingData);
+    
+    const uploadedImages = [];
+    
+    if (req.files['galleryList']) {
+      console.log('Processing gallery images:', req.files['galleryList']);
+      
+      for (const galleryImageFile of req.files['galleryList']) {
+        const galleryImageParams = {
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: `gallery_images/${uuid.v4()}_${galleryImageFile.originalname}`,
+          Body: fs.createReadStream(galleryImageFile.path),
+        };
+        const galleryImageUploadResult = await s3.upload(galleryImageParams).promise();
+        uploadedImages.push(galleryImageUploadResult.Location);
+      }
+      
+      console.log('Uploaded gallery images:', uploadedImages);
+    } else {
+      console.log('No gallery images found');
+    }
 
+    BuildingData.galleryList = uploadedImages[0];
+    console.log('Building data with updated galleryList:', BuildingData);
+    
+    const newBuilding = new Building(BuildingData);
+    await newBuilding.save();
+    
+    console.log('Building details saved successfully:', newBuilding);
+    res.status(201).json(newBuilding);
+  } catch (error) {
+    console.error('Error saving building details:', error);
+    res.status(500).json({ error: 'Error saving building details' });
+  }
+});
+
+// Route to get all properties with the same building_id
+app.get('/api/properties/building/:buildingId', async (req, res) => {
+  const buildingId = req.params.buildingId;
+
+  try {
+    // Use find to get all properties with the matching building_id
+    const properties = await Property.find({ building_id: buildingId });
+
+    if (properties.length > 0) {
+      res.json(properties);
+    } else {
+      res.status(404).send('No properties found for the specified building ID');
+    }
+  } catch (error) {
+    console.error(`Error fetching properties for building ID ${buildingId}:`, error);
+    res.status(500).send('Error fetching properties');
+  }
+});
+
+
+// Route to get all building data
+app.get('/api/buildings', async (req, res) => {
+  try {
+    // Retrieve all buildings from the database
+    const buildings = await Building.find();
+
+    console.log(' building fetched :', buildings);
+    res.status(200).json(buildings);
+  } catch (error) {
+    console.error('Error fetching building data:', error);
+    res.status(500).json({ error: 'Error fetching building data' });
+  }
+});
+
+// Route to remove buildings with no name
+app.get('/api/removeBuilding', async (req, res) => {
+  try {
+      // Delete buildings where name is not present
+      const result = await Building.deleteMany({ name: { $exists: false } });
+
+      if (result.deletedCount > 0) {
+          res.status(200).json({ message: 'Buildings with no name removed successfully' });
+      } else {
+          res.status(404).json({ message: 'No buildings with no name found' });
+      }
+  } catch (error) {
+      console.error('Error removing buildings:', error);
+      res.status(500).json({ error: 'Error removing buildings' });
+  }
+});
+
+
+app.get('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    // Extract the buildingId from the request parameters
+    const buildingId = req.params.buildingId;
+
+    // Check if the buildingId is not provided or empty
+    if (!buildingId) {
+      return res.status(400).json({ error: 'Building ID is required' });
+    }
+
+    // Find the building by its ID
+    const building = await Building.findOne({ buildingId: buildingId });
+
+    // If building is found, return it
+    if (building) {
+      res.json(building);
+    } else {
+      res.status(404).json({ error: 'Building not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching building:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 
@@ -340,13 +509,6 @@ app.post('/api/upload/property', upload.fields([
     res.status(400).send(error.message);
   }
 });
-
-
-
-
-
-
-
 
 
 
@@ -555,4 +717,3 @@ app.listen(PORT, () => {
   // Ensure indexes are built, especially for geospatial queries
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
-
