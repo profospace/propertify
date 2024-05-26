@@ -1,6 +1,7 @@
 const constantData = {
   isPropertyUpload: true,
-  homeUrls: [] 
+  homeUrls: []
+  
 };
 
 module.exports = constantData;
