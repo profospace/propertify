@@ -13,9 +13,26 @@ const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
+const Building = require('./Building'); // Import the User model
+const constantData = require('./ConstantModel');
+const ColorGradient = require('./dynamicdata');
+
+
 
 const util = require('util');
 
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/') // Make sure this path exists
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname)
+  }
+});
+
+
+const upload = multer({ storage: storage });
  //amplitude = new Amplitude('d184c07aebb3ba13b3af67456641080f')
 
 amplitude.init('d184c07aebb3ba13b3af67456641080f');
@@ -63,6 +80,9 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   }
 });
 
+
+
+
 // Check if S3 is connected
 s3.listBuckets((err, data) => {
   if (err) {
@@ -71,6 +91,85 @@ s3.listBuckets((err, data) => {
     console.log("Connected to AWS S3. Buckets:", data.Buckets);
   }
 });
+
+
+const additionalUrls = [
+  "https://additional-example1.com",
+  "https://additional-example2.com",
+  "https://additional-example3.com"
+];
+
+constantData.homeUrls.push(...additionalUrls);
+
+// Define a route to return the constant data
+app.get('/constant', (req, res) => {
+  res.json(constantData);
+});
+
+
+// const colorGradientData = {
+//   header: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   button: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   buttonBackground: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   list_title_size: {
+//     color: '#333333', // Change this color as needed
+//     backgroundColor: '#f2f2f2' // Change this color as needed
+//   },
+//   listbackground: {
+//     backgroundColor: '#ffffff' // Change this color as needed
+//   },
+//   search_filter: {
+//     backgroundColor: '#eeeeee' // Change this color as needed
+//   },
+//   list_price_size: 14,
+//   markerColor: '#FF5733', // Change this color as needed
+//   constantData: {
+//     isPropertyUpload: true,
+//     homeUrls: [],
+//     isStrokeFilter: false,
+//     isMaterialElevation: false,
+//     headerHeight: 290,
+//     appPackageName: '',
+//     defaultLanguage: '',
+//     currencyCode: '',
+//     appName: '',
+//     appEmail: '',
+//     appLogo: '',
+//     appCompany: '',
+//     appWebsite: '',
+//     appContact: '',
+//     facebookLink: '',
+//     twitterLink: '',
+//     instagramLink: '',
+//     youtubeLink: '',
+//     googlePlayLink: '',
+//     appleStoreLink: '',
+//     appVersion: '',
+//     appUpdateHideShow: '',
+//     appUpdateVersionCode: 0,
+//     appUpdateDesc: '',
+//     appUpdateLink: '',
+//     appUpdateCancelOption: '',
+//     priceColor: '',
+//     callButtonColor: '',
+//     DetailPageButtonColor: {
+//       startColor: '',
+//       endColor: ''
+//     },
+//     isCallDirect: false,
+//     homePageLayoutOrder: [1, 3, 4, 5, 6],
+//     shadowOnImage: false
+//   }
+// };
 
 const colorGradientData = {
   header: {
@@ -86,18 +185,112 @@ const colorGradientData = {
     endColor: '#ff6a00'
   },
   list_title_size: {
-    color: '#333333', // Change this color as needed
-    backgroundColor: '#f2f2f2' // Change this color as needed
+    color: '#333333',
+    backgroundColor: '#f2f2f2'
   },
   listbackground: {
-    backgroundColor: '#ffffff' // Change this color as needed
+    backgroundColor: '#ffffff'
   },
   search_filter: {
-    backgroundColor: '#eeeeee' // Change this color as needed
+    backgroundColor: '#eeeeee'
   },
   list_price_size: 14,
-  markerColor: '#FF5733' // Change this color as needed
+  markerColor: '#FF5733',
+  constantData: {
+    isPropertyUpload: true,
+    homeUrls: [],
+    isStrokeFilter: false,
+    isMaterialElevation: false,
+    headerHeight: 290,
+    appPackageName: '',
+    defaultLanguage: '',
+    currencyCode: 'INR',
+    appName: 'OFO',
+    appEmail: '',
+    appLogo: '',
+    appCompany: '',
+    appWebsite: '',
+    appContact: '',
+    facebookLink: '',
+    twitterLink: '',
+    instagramLink: '',
+    youtubeLink: '',
+    googlePlayLink: '',
+    appleStoreLink: '',
+    appVersion: '',
+    appUpdateHideShow: '',
+    appUpdateVersionCode: 0,
+    appUpdateDesc: '',
+    appUpdateLink: '',
+    appUpdateCancelOption: '',
+    priceColor: '#9C27B0',
+    callButtonColor: '#246bfd',
+    DetailPageButtonColor: {
+      startColor: '',
+      endColor: ''
+    },
+    isCallDirect: false,
+    homePageLayoutOrder: [1, 3, 4, 5, 6],
+    shadowOnImage: false
+  },
+  ads: [
+    {
+      name: "Ad1",
+      pagelink: "https://example.com/ad1",
+      imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
+      contact: ["contact1@example.com", "123-456-7890"]
+    },
+    {
+      name: "Ad2",
+      pagelink: "https://example.com/ad2",
+      imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
+      contact: ["contact2@example.com", "098-765-4321"]
+    }
+  ]
 };
+
+// Save the color gradient data to MongoDB
+app.post('/api/colors/save', async (req, res) => {
+  try {
+    const newColorGradientData = new ColorGradient(colorGradientData);
+    await newColorGradientData.save();
+    res.status(200).json(newColorGradientData);
+  } catch (error) {
+    console.error('Error saving color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
+  }
+});
+
+// Retrieve the color gradient data from MongoDB
+app.get('/api/colors', async (req, res) => {
+  try {
+    const colorData = await ColorGradient.findOne({});
+    res.status(200).json(colorData);
+  } catch (error) {
+    console.error('Error retrieving color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to retrieve color gradient data' });
+  }
+});
+
+// Update the color gradient data
+app.post('/api/colors/update', async (req, res) => {
+  try {
+    const updatedColorData = req.body;
+    console.log('Received request body:', updatedColorData);
+
+    const colorData = await ColorGradient.findOne({});
+    if (colorData) {
+      Object.assign(colorData, updatedColorData);
+      await colorData.save();
+      res.status(200).json(colorData);
+    } else {
+      res.status(400).json({ error: 'Color gradient data not found' });
+    }
+  } catch (error) {
+    console.error('Error updating color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+  }
+});
 
 // Define your API endpoint
 app.get('/api/colors', (req, res) => {
@@ -105,6 +298,7 @@ app.get('/api/colors', (req, res) => {
   res.json(colorGradientData);
 });
 
+// Define a route to update the color gradient data
 // Define a route to update the color gradient data
 app.post('/api/colors/update', (req, res) => {
   const updatedColorData = req.body;
@@ -115,45 +309,58 @@ app.post('/api/colors/update', (req, res) => {
     colorGradientData.header.endColor = updatedColorData.header.endColor;
     colorGradientData.button.startColor = updatedColorData.button.startColor;
     colorGradientData.button.endColor = updatedColorData.button.endColor;
-    res.status(200).json({ message: 'Color gradient data updated successfully' });
+
+    // Update other color constants
+    colorGradientData.buttonBackground.startColor = updatedColorData.buttonBackground.startColor;
+    colorGradientData.buttonBackground.endColor = updatedColorData.buttonBackground.endColor;
+    colorGradientData.list_title_size.color = updatedColorData.list_title_size.color;
+    colorGradientData.list_title_size.backgroundColor = updatedColorData.list_title_size.backgroundColor;
+    colorGradientData.listbackground.backgroundColor = updatedColorData.listbackground.backgroundColor;
+    colorGradientData.search_filter.backgroundColor = updatedColorData.search_filter.backgroundColor;
+    colorGradientData.markerColor = updatedColorData.markerColor;
+
+    // Update DetailPageButtonColor
+    colorGradientData.constantData.isPropertyUpload = updatedColorData.constantData.isPropertyUpload;
+    colorGradientData.constantData.homeUrls = updatedColorData.constantData.homeUrls;
+    colorGradientData.constantData.isStrokeFilter = updatedColorData.constantData.isStrokeFilter;
+    colorGradientData.constantData.isMaterialElevation = updatedColorData.constantData.isMaterialElevation;
+    colorGradientData.constantData.headerHeight = updatedColorData.constantData.headerHeight;
+    colorGradientData.constantData.appPackageName = updatedColorData.constantData.appPackageName;
+    colorGradientData.constantData.defaultLanguage = updatedColorData.constantData.defaultLanguage;
+    colorGradientData.constantData.currencyCode = updatedColorData.constantData.currencyCode;
+    colorGradientData.constantData.appName = updatedColorData.constantData.appName;
+    colorGradientData.constantData.appEmail = updatedColorData.constantData.appEmail;
+    colorGradientData.constantData.appLogo = updatedColorData.constantData.appLogo;
+    colorGradientData.constantData.appCompany = updatedColorData.constantData.appCompany;
+    colorGradientData.constantData.appWebsite = updatedColorData.constantData.appWebsite;
+    colorGradientData.constantData.appContact = updatedColorData.constantData.appContact;
+    colorGradientData.constantData.facebookLink = updatedColorData.constantData.facebookLink;
+    colorGradientData.constantData.twitterLink = updatedColorData.constantData.twitterLink;
+    colorGradientData.constantData.instagramLink = updatedColorData.constantData.instagramLink;
+    colorGradientData.constantData.youtubeLink = updatedColorData.constantData.youtubeLink;
+    colorGradientData.constantData.googlePlayLink = updatedColorData.constantData.googlePlayLink;
+    colorGradientData.constantData.appleStoreLink = updatedColorData.constantData.appleStoreLink;
+    colorGradientData.constantData.appVersion = updatedColorData.constantData.appVersion;
+    colorGradientData.constantData.appUpdateHideShow = updatedColorData.constantData.appUpdateHideShow;
+    colorGradientData.constantData.appUpdateVersionCode = updatedColorData.constantData.appUpdateVersionCode;
+    colorGradientData.constantData.appUpdateDesc = updatedColorData.constantData.appUpdateDesc;
+    colorGradientData.constantData.appUpdateLink = updatedColorData.constantData.appUpdateLink;
+    colorGradientData.constantData.appUpdateCancelOption = updatedColorData.constantData.appUpdateCancelOption;
+    colorGradientData.constantData.priceColor = updatedColorData.constantData.priceColor;
+    colorGradientData.constantData.callButtonColor = updatedColorData.constantData.callButtonColor;
+    colorGradientData.constantData.isCallDirect = updatedColorData.constantData.isCallDirect;
+    colorGradientData.constantData.DetailPageButtonColor.startColor = updatedColorData.constantData.DetailPageButtonColor.startColor;
+    colorGradientData.constantData.DetailPageButtonColor.endColor = updatedColorData.constantData.DetailPageButtonColor.endColor;
+    colorGradientData.constantData.homePageLayoutOrder = updatedColorData.constantData.homePageLayoutOrder;
+    colorGradientData.constantData.shadowOnImage = updatedColorData.constantData.shadowOnImage;
+
+    res.status(200).json(colorGradientData);
   } else {
     res.status(400).json({ error: 'Invalid color data' });
   }
 });
 
 
-// Endpoint to save building details and images
-app.post('/api/buildings/saveBuildingDetails', upload.array('photos', 5), async (req, res) => {
-  try {
-    const { buildingId, name, location, frontRoad, parkingArea } = req.body;
-    const photos = [];
-    
-    // Process and upload photos to S3
-    if (req.files) {
-      for (const photoFile of req.files) {
-        const photoParams = {
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: `building_photos/${uuid.v4()}_${photoFile.originalname}`,
-          Body: fs.createReadStream(photoFile.path),
-        };
-        const photoUploadResult = await s3.upload(photoParams).promise();
-        photos.push(photoUploadResult.Location);
-      }
-    }
-    
-    // Create a new Building object with the details
-    const newBuilding = new Building({ buildingId, name, location, photos, frontRoad, parkingArea });
-
-    // Save the building to the database
-    await newBuilding.save();
-
-    // Return the saved building object in the response
-    res.status(201).json(newBuilding);
-  } catch (error) {
-    console.error('Error saving building details:', error);
-    res.status(500).json({ error: 'Error saving building details' });
-  }
-});
 
 
 
@@ -249,14 +456,10 @@ function generatePostId() {
 }
 
 
-
-
 // Endpoint to fetch property details by ID ==============//
 
 
 app.get('/api/details/:id', async (req, res) => {
-
-
    const clientIp = req.ip;
    const locationData = await getLocationFromIP(clientIp);
    const { city, region, country } = locationData;
@@ -309,20 +512,6 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 
 
 
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/') // Make sure this path exists
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.fieldname + '-' + uniqueSuffix + '-' + file.originalname)
-  }
-});
-
-const upload = multer({ storage: storage });
-
-
-
 app.get('/api/properties/all', async (req, res) => {
   try {
       // Fetch all properties from the MongoDB collection
@@ -333,6 +522,127 @@ app.get('/api/properties/all', async (req, res) => {
       res.status(500).json({ message: 'Error fetching properties from MongoDB' });
   }
 });
+app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryList', maxCount: 5 }]), async (req, res) => {
+  try {
+    console.log('Received request to save building details');
+    
+    const BuildingData = JSON.parse(req.body.data || '{}');
+    console.log('Parsed building data:', BuildingData);
+    
+    const uploadedImages = [];
+    
+    if (req.files['galleryList']) {
+      console.log('Processing gallery images:', req.files['galleryList']);
+      
+      for (const galleryImageFile of req.files['galleryList']) {
+        const galleryImageParams = {
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: `gallery_images/${uuid.v4()}_${galleryImageFile.originalname}`,
+          Body: fs.createReadStream(galleryImageFile.path),
+        };
+        const galleryImageUploadResult = await s3.upload(galleryImageParams).promise();
+        uploadedImages.push(galleryImageUploadResult.Location);
+      }
+      
+      console.log('Uploaded gallery images:', uploadedImages);
+    } else {
+      console.log('No gallery images found');
+    }
+
+    BuildingData.galleryList = uploadedImages[0];
+    console.log('Building data with updated galleryList:', BuildingData);
+    
+    const newBuilding = new Building(BuildingData);
+    await newBuilding.save();
+    
+    console.log('Building details saved successfully:', newBuilding);
+    res.status(201).json(newBuilding);
+  } catch (error) {
+    console.error('Error saving building details:', error);
+    res.status(500).json({ error: 'Error saving building details' });
+  }
+});
+
+// Route to get all properties with the same building_id
+app.get('/api/properties/building/:buildingId', async (req, res) => {
+  const buildingId = req.params.buildingId;
+
+  try {
+    // Use find to get all properties with the matching building_id
+    const properties = await Property.find({ building_id: buildingId });
+
+    if (properties.length > 0) {
+      res.json(properties);
+    } else {
+      res.status(404).send('No properties found for the specified building ID');
+    }
+  } catch (error) {
+    console.error(`Error fetching properties for building ID ${buildingId}:`, error);
+    res.status(500).send('Error fetching properties');
+  }
+});
+
+
+// Route to get all building data
+app.get('/api/buildings', async (req, res) => {
+  try {
+    // Retrieve all buildings from the database
+    const buildings = await Building.find();
+
+    console.log(' building fetched :', buildings);
+    res.status(200).json(buildings);
+  } catch (error) {
+    console.error('Error fetching building data:', error);
+    res.status(500).json({ error: 'Error fetching building data' });
+  }
+});
+
+// Route to remove buildings with no name
+app.get('/api/removeBuilding', async (req, res) => {
+  try {
+      // Delete buildings where name is not present
+      const result = await Building.deleteMany({ name: { $exists: false } });
+
+      if (result.deletedCount > 0) {
+          res.status(200).json({ message: 'Buildings with no name removed successfully' });
+      } else {
+          res.status(404).json({ message: 'No buildings with no name found' });
+      }
+  } catch (error) {
+      console.error('Error removing buildings:', error);
+      res.status(500).json({ error: 'Error removing buildings' });
+  }
+});
+
+
+app.get('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    // Extract the buildingId from the request parameters
+    const buildingId = req.params.buildingId;
+
+    // Check if the buildingId is not provided or empty
+    if (!buildingId) {
+      return res.status(400).json({ error: 'Building ID is required' });
+    }
+
+    // Find the building by its ID
+    const building = await Building.findOne({ buildingId: buildingId });
+
+    // If building is found, return it
+    if (building) {
+      res.json(building);
+    } else {
+      res.status(404).json({ error: 'Building not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching building:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
 
 
 // Endpoint to upload a new property with images ===============================//
@@ -390,12 +700,6 @@ app.post('/api/upload/property', upload.fields([
 
     if (!propertyData.post_id) {
       propertyData.post_id = generatePostId(); // Generate a new post_id
-    }
-
-
-    // If building ID is available, start the post ID with 'b'
-    if (propertyData.building_id) {
-      propertyData.post_id = 'b' + propertyData.post_id;
     }
 
 
@@ -483,6 +787,26 @@ app.post('/api/upload/property', upload.fields([
         res.status(500).json({ message: error.message });
     }
 });
+
+
+// New API for filtering properties by price range
+app.get('/api/properties/priceRange', async (req, res) => {
+  const { priceMin, priceMax } = req.query;
+
+  let filter = {};
+
+  if (priceMin) filter.price = { ...filter.price, $gte: Number(priceMin) };
+  if (priceMax) filter.price = { ...filter.price, $lte: Number(priceMax) };
+
+  try {
+    const properties = await Property.find(filter);
+    res.json(properties);
+  } catch (error) {
+    console.error('Error fetching properties:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 
 app.get('/api/update_gallery_all_properties', async (req, res) => {
