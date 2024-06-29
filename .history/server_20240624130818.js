@@ -14,7 +14,10 @@ const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
 const Building = require('./Building'); // Import the User model
-const constantData = require('./models/ConstantModel');
+const constantData = require('./ConstantModel');
+const ColorGradient = require('./dynamicdata');
+const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
+const API_KEY = process.env.FAST2SMS_API_KEY; // Make sure to add this to your .env file
 
 
 
@@ -45,6 +48,96 @@ app.use(cors());
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+
+
+const crypto = require('crypto');
+
+// Enhanced OTP generation
+function generateOTP() {
+  return crypto.randomInt(100000, 999999).toString();
+}
+
+// Create a separate model for OTP
+const otpSchema = new mongoose.Schema({
+  phoneNumber: { type: String, required: true },
+  otp: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now, expires: '5m' } // OTP expires after 5 minutes
+});
+
+const OTP = mongoose.model('OTP', otpSchema);
+
+// Send OTP endpoint
+app.post('/api/send-otp', async (req, res) => {
+  const { phoneNumber } = req.body;
+
+  if (!phoneNumber || !/^\d{10}$/.test(phoneNumber)) {
+    return res.status(400).json({ status_code: '400', success: 'false', msg: 'Invalid phone number' });
+  }
+
+  try {
+    // Check if an OTP was recently sent
+    const recentOTP = await OTP.findOne({ phoneNumber, createdAt: { $gt: new Date(Date.now() - 60000) } });
+    if (recentOTP) {
+      return res.status(429).json({ status_code: '429', success: 'false', msg: 'Please wait before requesting a new OTP' });
+    }
+
+    const otp = generateOTP();
+
+    const response = await axios.get(OTP_URL, {
+      params: {
+        authorization: API_KEY,
+        route: 'otp',
+        variables_values: otp,
+        numbers: phoneNumber,
+        flash: '0'
+      }
+    });
+
+    if (response.data.return === true) {
+      await OTP.findOneAndUpdate(
+        { phoneNumber },
+        { otp, createdAt: new Date() },
+        { upsert: true, new: true }
+      );
+
+      res.json({ status_code: '200', success: 'true', msg: 'OTP sent successfully' });
+    } else {
+      res.status(400).json({ status_code: '400', success: 'false', msg: 'Failed to send OTP' });
+    }
+  } catch (error) {
+    console.error('Error sending OTP:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Internal server error' });
+  }
+});
+
+// Verify OTP endpoint
+app.post('/api/verify-otp', async (req, res) => {
+  const { phoneNumber, otp } = req.body;
+
+  if (!phoneNumber || !/^\d{10}$/.test(phoneNumber) || !otp || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ status_code: '400', success: 'false', msg: 'Invalid phone number or OTP' });
+  }
+
+  try {
+    const otpDoc = await OTP.findOne({ phoneNumber, otp });
+
+    if (!otpDoc) {
+      return res.status(400).json({ status_code: '400', success: 'false', msg: 'Invalid OTP' });
+    }
+
+    // OTP is valid, delete it and update user
+    await OTP.deleteOne({ _id: otpDoc._id });
+
+    // Here you might want to update the user's verified status
+    await User.findOneAndUpdate({ phone: phoneNumber }, { $set: { isPhoneVerified: true } });
+
+    res.json({ status_code: '200', success: 'true', msg: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('Error verifying OTP:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Internal server error' });
+  }
 });
 
 // Controller function to save user details
@@ -106,6 +199,70 @@ app.get('/constant', (req, res) => {
 });
 
 
+// const colorGradientData = {
+//   header: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   button: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   buttonBackground: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   list_title_size: {
+//     color: '#333333', // Change this color as needed
+//     backgroundColor: '#f2f2f2' // Change this color as needed
+//   },
+//   listbackground: {
+//     backgroundColor: '#ffffff' // Change this color as needed
+//   },
+//   search_filter: {
+//     backgroundColor: '#eeeeee' // Change this color as needed
+//   },
+//   list_price_size: 14,
+//   markerColor: '#FF5733', // Change this color as needed
+//   constantData: {
+//     isPropertyUpload: true,
+//     homeUrls: [],
+//     isStrokeFilter: false,
+//     isMaterialElevation: false,
+//     headerHeight: 290,
+//     appPackageName: '',
+//     defaultLanguage: '',
+//     currencyCode: '',
+//     appName: '',
+//     appEmail: '',
+//     appLogo: '',
+//     appCompany: '',
+//     appWebsite: '',
+//     appContact: '',
+//     facebookLink: '',
+//     twitterLink: '',
+//     instagramLink: '',
+//     youtubeLink: '',
+//     googlePlayLink: '',
+//     appleStoreLink: '',
+//     appVersion: '',
+//     appUpdateHideShow: '',
+//     appUpdateVersionCode: 0,
+//     appUpdateDesc: '',
+//     appUpdateLink: '',
+//     appUpdateCancelOption: '',
+//     priceColor: '',
+//     callButtonColor: '',
+//     DetailPageButtonColor: {
+//       startColor: '',
+//       endColor: ''
+//     },
+//     isCallDirect: false,
+//     homePageLayoutOrder: [1, 3, 4, 5, 6],
+//     shadowOnImage: false
+//   }
+// };
+
 const colorGradientData = {
   header: {
     startColor: '#ee0979',
@@ -120,18 +277,112 @@ const colorGradientData = {
     endColor: '#ff6a00'
   },
   list_title_size: {
-    color: '#333333', // Change this color as needed
-    backgroundColor: '#f2f2f2' // Change this color as needed
+    color: '#333333',
+    backgroundColor: '#f2f2f2'
   },
   listbackground: {
-    backgroundColor: '#ffffff' // Change this color as needed
+    backgroundColor: '#ffffff'
   },
   search_filter: {
-    backgroundColor: '#eeeeee' // Change this color as needed
+    backgroundColor: '#eeeeee'
   },
   list_price_size: 14,
-  markerColor: '#FF5733' // Change this color as needed
+  markerColor: '#FF5733',
+  constantData: {
+    isPropertyUpload: true,
+    homeUrls: [],
+    isStrokeFilter: false,
+    isMaterialElevation: false,
+    headerHeight: 290,
+    appPackageName: '',
+    defaultLanguage: '',
+    currencyCode: 'INR',
+    appName: 'OFO',
+    appEmail: '',
+    appLogo: '',
+    appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
+    appWebsite: "",
+    appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
+    facebookLink: '',
+    twitterLink: '',
+    instagramLink: '',
+    youtubeLink: '',
+    googlePlayLink: '',
+    appleStoreLink: '',
+    appVersion: '',
+    appUpdateHideShow: '',
+    appUpdateVersionCode: 0,
+    appUpdateDesc: '',
+    appUpdateLink: '',
+    appUpdateCancelOption: '',
+    priceColor: '#9C27B0',
+    callButtonColor: '#246bfd',
+    DetailPageButtonColor: {
+      startColor: '',
+      endColor: ''
+    },
+    isCallDirect: false,
+    homePageLayoutOrder: [1, 3, 4, 5, 6],
+    shadowOnImage: false
+  },
+  ads: [
+    {
+      name: "Ad1",
+      pagelink: "https://example.com/ad1",
+      imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
+      contact: ["contact1@example.com", "123-456-7890"]
+    },
+    {
+      name: "Ad2",
+      pagelink: "https://example.com/ad2",
+      imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
+      contact: ["contact2@example.com", "098-765-4321"]
+    }
+  ]
 };
+
+// Save the color gradient data to MongoDB
+app.post('/api/colors/save', async (req, res) => {
+  try {
+    const newColorGradientData = new ColorGradient(colorGradientData);
+    await newColorGradientData.save();
+    res.status(200).json(newColorGradientData);
+  } catch (error) {
+    console.error('Error saving color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
+  }
+});
+
+// Retrieve the color gradient data from MongoDB
+app.get('/api/colors', async (req, res) => {
+  try {
+    const colorData = await ColorGradient.findOne({});
+    res.status(200).json(colorData);
+  } catch (error) {
+    console.error('Error retrieving color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to retrieve color gradient data' });
+  }
+});
+
+// Update the color gradient data
+app.post('/api/colors/update', async (req, res) => {
+  try {
+    const updatedColorData = req.body;
+    console.log('Received request body:', updatedColorData);
+
+    const colorData = await ColorGradient.findOne({});
+    if (colorData) {
+      Object.assign(colorData, updatedColorData);
+      await colorData.save();
+      res.status(200).json(colorData);
+    } else {
+      res.status(400).json({ error: 'Color gradient data not found' });
+    }
+  } catch (error) {
+    console.error('Error updating color gradient data:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+  }
+});
 
 // Define your API endpoint
 app.get('/api/colors', (req, res) => {
@@ -139,21 +390,65 @@ app.get('/api/colors', (req, res) => {
   res.json(colorGradientData);
 });
 
-// Define a route to update the color gradient data
-app.post('/api/colors/update', (req, res) => {
-  const updatedColorData = req.body;
-  console.log('Received request body:', updatedColorData); // Log the received data
-  if (updatedColorData) {
-    // Update the properties of colorGradientData
-    colorGradientData.header.startColor = updatedColorData.header.startColor;
-    colorGradientData.header.endColor = updatedColorData.header.endColor;
-    colorGradientData.button.startColor = updatedColorData.button.startColor;
-    colorGradientData.button.endColor = updatedColorData.button.endColor;
-    res.status(200).json({ message: 'Color gradient data updated successfully' });
-  } else {
-    res.status(400).json({ error: 'Invalid color data' });
-  }
-});
+// app.post('/api/colors/update', (req, res) => {
+//   const updatedColorData = req.body;
+//   console.log('Received request body:', updatedColorData); // Log the received data
+//   if (updatedColorData) {
+//     // Update the properties of colorGradientData
+//     colorGradientData.header.startColor = updatedColorData.header.startColor;
+//     colorGradientData.header.endColor = updatedColorData.header.endColor;
+//     colorGradientData.button.startColor = updatedColorData.button.startColor;
+//     colorGradientData.button.endColor = updatedColorData.button.endColor;
+
+//     // Update other color constants
+//     colorGradientData.buttonBackground.startColor = updatedColorData.buttonBackground.startColor;
+//     colorGradientData.buttonBackground.endColor = updatedColorData.buttonBackground.endColor;
+//     colorGradientData.list_title_size.color = updatedColorData.list_title_size.color;
+//     colorGradientData.list_title_size.backgroundColor = updatedColorData.list_title_size.backgroundColor;
+//     colorGradientData.listbackground.backgroundColor = updatedColorData.listbackground.backgroundColor;
+//     colorGradientData.search_filter.backgroundColor = updatedColorData.search_filter.backgroundColor;
+//     colorGradientData.markerColor = updatedColorData.markerColor;
+
+//     // Update DetailPageButtonColor
+//     colorGradientData.constantData.isPropertyUpload = updatedColorData.constantData.isPropertyUpload;
+//     colorGradientData.constantData.homeUrls = updatedColorData.constantData.homeUrls;
+//     colorGradientData.constantData.isStrokeFilter = updatedColorData.constantData.isStrokeFilter;
+//     colorGradientData.constantData.isMaterialElevation = updatedColorData.constantData.isMaterialElevation;
+//     colorGradientData.constantData.headerHeight = updatedColorData.constantData.headerHeight;
+//     colorGradientData.constantData.appPackageName = updatedColorData.constantData.appPackageName;
+//     colorGradientData.constantData.defaultLanguage = updatedColorData.constantData.defaultLanguage;
+//     colorGradientData.constantData.currencyCode = updatedColorData.constantData.currencyCode;
+//     colorGradientData.constantData.appName = updatedColorData.constantData.appName;
+//     colorGradientData.constantData.appEmail = updatedColorData.constantData.appEmail;
+//     colorGradientData.constantData.appLogo = updatedColorData.constantData.appLogo;
+//     colorGradientData.constantData.appCompany = updatedColorData.constantData.appCompany;
+//     colorGradientData.constantData.appWebsite = updatedColorData.constantData.appWebsite;
+//     colorGradientData.constantData.appContact = updatedColorData.constantData.appContact;
+//     colorGradientData.constantData.facebookLink = updatedColorData.constantData.facebookLink;
+//     colorGradientData.constantData.twitterLink = updatedColorData.constantData.twitterLink;
+//     colorGradientData.constantData.instagramLink = updatedColorData.constantData.instagramLink;
+//     colorGradientData.constantData.youtubeLink = updatedColorData.constantData.youtubeLink;
+//     colorGradientData.constantData.googlePlayLink = updatedColorData.constantData.googlePlayLink;
+//     colorGradientData.constantData.appleStoreLink = updatedColorData.constantData.appleStoreLink;
+//     colorGradientData.constantData.appVersion = updatedColorData.constantData.appVersion;
+//     colorGradientData.constantData.appUpdateHideShow = updatedColorData.constantData.appUpdateHideShow;
+//     colorGradientData.constantData.appUpdateVersionCode = updatedColorData.constantData.appUpdateVersionCode;
+//     colorGradientData.constantData.appUpdateDesc = updatedColorData.constantData.appUpdateDesc;
+//     colorGradientData.constantData.appUpdateLink = updatedColorData.constantData.appUpdateLink;
+//     colorGradientData.constantData.appUpdateCancelOption = updatedColorData.constantData.appUpdateCancelOption;
+//     colorGradientData.constantData.priceColor = updatedColorData.constantData.priceColor;
+//     colorGradientData.constantData.callButtonColor = updatedColorData.constantData.callButtonColor;
+//     colorGradientData.constantData.isCallDirect = updatedColorData.constantData.isCallDirect;
+//     colorGradientData.constantData.DetailPageButtonColor.startColor = updatedColorData.constantData.DetailPageButtonColor.startColor;
+//     colorGradientData.constantData.DetailPageButtonColor.endColor = updatedColorData.constantData.DetailPageButtonColor.endColor;
+//     colorGradientData.constantData.homePageLayoutOrder = updatedColorData.constantData.homePageLayoutOrder;
+//     colorGradientData.constantData.shadowOnImage = updatedColorData.constantData.shadowOnImage;
+
+//     res.status(200).json(colorGradientData);
+//   } else {
+//     res.status(400).json({ error: 'Invalid color data' });
+//   }
+// });
 
 
 
