@@ -9,7 +9,7 @@ const AWS = require('aws-sdk');
 const multer = require('multer');
 const app = express();
 const cors = require('cors'); // Import the cors middleware
-const PORT = process.env.PORT || 5054;
+const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
@@ -117,6 +117,7 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
+
 // Verify OTP endpoint
 app.post('/api/verify-otp', async (req, res) => {
   const { phoneNumber, otp } = req.body;
@@ -126,28 +127,9 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 
   try {
-    const otpDoc = await OTP.findOne({ phoneNumber });
+    const otpDoc = await OTP.findOne({ phoneNumber, otp });
 
     if (!otpDoc) {
-      return res.status(400).json({ status_code: '400', success: 'false', msg: 'No OTP found for this number' });
-    }
-
-    // Check if 3 attempts have been made
-    if (otpDoc.attempts >= 3) {
-      return res.status(429).json({ status_code: '429', success: 'false', msg: 'Maximum attempts reached. Please request a new OTP.' });
-    }
-
-    // Check if enough time has passed since the last attempt (e.g., 1 minute)
-    if (otpDoc.lastAttemptAt && new Date() - otpDoc.lastAttemptAt < 60000) {
-      return res.status(429).json({ status_code: '429', success: 'false', msg: 'Please wait before trying again' });
-    }
-
-    // Increment attempts and update last attempt time
-    otpDoc.attempts += 1;
-    otpDoc.lastAttemptAt = new Date();
-    await otpDoc.save();
-
-    if (otpDoc.otp !== otp) {
       return res.status(400).json({ status_code: '400', success: 'false', msg: 'Invalid OTP' });
     }
 
