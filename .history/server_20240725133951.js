@@ -9,7 +9,7 @@ const AWS = require('aws-sdk');
 const multer = require('multer');
 const app = express();
 const cors = require('cors'); // Import the cors middleware
-const PORT = process.env.PORT || 5054;
+const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
@@ -17,8 +17,7 @@ const Building = require('./Building'); // Import the User model
 const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
 const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
-const API_KEY = process.env.FAST2SMS_API_KEY; // Make sure to add this to your .env file
-
+const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
 
 
 const util = require('util');
@@ -287,95 +286,94 @@ app.get('/constant', (req, res) => {
 //   }
 // };
 
-const colorGradientData = {
-  header: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  button: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  buttonBackground: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  list_title_size: {
-    color: '#333333',
-    backgroundColor: '#f2f2f2'
-  },
-  listbackground: {
-    backgroundColor: '#ffffff'
-  },
-  search_filter: {
-    backgroundColor: '#eeeeee'
-  },
-  list_price_size: 14,
-  markerColor: '#FF5733',
-  constantData: {
-    isPropertyUpload: true,
-    homeUrls: [],
-    isStrokeFilter: false,
-    isMaterialElevation: false,
-    headerHeight: 290,
-    appPackageName: '',
-    defaultLanguage: '',
-    currencyCode: 'INR',
-    appName: 'OFO',
-    appEmail: '',
-    appLogo: '',
-    appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
-    appWebsite: "",
-    appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
-    facebookLink: '',
-    twitterLink: '',
-    instagramLink: '',
-    youtubeLink: '',
-    googlePlayLink: '',
-    appleStoreLink: '',
-    appVersion: '',
-    appUpdateHideShow: '',
-    appUpdateVersionCode: 0,
-    appUpdateDesc: '',
-    appUpdateLink: '',
-    appUpdateCancelOption: '',
-    priceColor: '#9C27B0',
-    callButtonColor: '#246bfd',
-    DetailPageButtonColor: {
-      startColor: '',
-      endColor: ''
-    },
-    isCallDirect: false,
-    homePageLayoutOrder: [1, 3, 4, 5, 6],
-    shadowOnImage: false
-  },
-  ads: [
-    {
-      name: "Ad1",
-      pagelink: "https://example.com/ad1",
-      imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
-      contact: ["contact1@example.com", "123-456-7890"]
-    },
-    {
-      name: "Ad2",
-      pagelink: "https://example.com/ad2",
-      imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
-      contact: ["contact2@example.com", "098-765-4321"]
-    }
-  ]
-};
+// const colorGradientData = {
+//   header: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   button: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   buttonBackground: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   list_title_size: {
+//     color: '#333333',
+//     backgroundColor: '#f2f2f2'
+//   },
+//   listbackground: {
+//     backgroundColor: '#ffffff'
+//   },
+//   search_filter: {
+//     backgroundColor: '#eeeeee'
+//   },
+//   list_price_size: 14,
+//   markerColor: '#FF5733',
+//   constantData: {
+//     isPropertyUpload: true,
+//     homeUrls: [],
+//     isStrokeFilter: false,
+//     isMaterialElevation: false,
+//     headerHeight: 290,
+//     appPackageName: '',
+//     defaultLanguage: '',
+//     currencyCode: 'INR',
+//     appName: 'OFO',
+//     appEmail: '',
+//     appLogo: '',
+//     appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
+//     appWebsite: "",
+//     appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
+//     facebookLink: '',
+//     twitterLink: '',
+//     instagramLink: '',
+//     youtubeLink: '',
+//     googlePlayLink: '',
+//     appleStoreLink: '',
+//     appVersion: '',
+//     appUpdateHideShow: '',
+//     appUpdateVersionCode: 0,
+//     appUpdateDesc: '',
+//     appUpdateLink: '',
+//     appUpdateCancelOption: '',
+//     priceColor: '#9C27B0',
+//     callButtonColor: '#246bfd',
+//     DetailPageButtonColor: {
+//       startColor: '',
+//       endColor: ''
+//     },
+//     isCallDirect: false,
+//     homePageLayoutOrder: [1, 3, 4, 5, 6],
+//     shadowOnImage: false
+//   },
+//   ads: [
+//     {
+//       name: "Ad1",
+//       pagelink: "https://example.com/ad1",
+//       imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
+//       contact: ["contact1@example.com", "123-456-7890"]
+//     },
+//     {
+//       name: "Ad2",
+//       pagelink: "https://example.com/ad2",
+//       imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
+//       contact: ["contact2@example.com", "098-765-4321"]
+//     }
+//   ]
+// };
 
-// Save the color gradient data to MongoDB
-app.post('/api/colors/save', async (req, res) => {
-  try {
-    const newColorGradientData = new ColorGradient(colorGradientData);
-    await newColorGradientData.save();
-    res.status(200).json(newColorGradientData);
-  } catch (error) {
-    console.error('Error saving color gradient data:', error);
-    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
-  }
-});
+// app.post('/api/colors/save', async (req, res) => {
+//   try {
+//     const newColorGradientData = new ColorGradient(colorGradientData);
+//     await newColorGradientData.save();
+//     res.status(200).json(newColorGradientData);
+//   } catch (error) {
+//     console.error('Error saving color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
+//   }
+// });
 
 // Retrieve the color gradient data from MongoDB
 app.get('/api/colors', async (req, res) => {
@@ -413,69 +411,6 @@ app.get('/api/colors', (req, res) => {
   // Send the color gradient data JSON object
   res.json(colorGradientData);
 });
-
-// app.post('/api/colors/update', (req, res) => {
-//   const updatedColorData = req.body;
-//   console.log('Received request body:', updatedColorData); // Log the received data
-//   if (updatedColorData) {
-//     // Update the properties of colorGradientData
-//     colorGradientData.header.startColor = updatedColorData.header.startColor;
-//     colorGradientData.header.endColor = updatedColorData.header.endColor;
-//     colorGradientData.button.startColor = updatedColorData.button.startColor;
-//     colorGradientData.button.endColor = updatedColorData.button.endColor;
-
-//     // Update other color constants
-//     colorGradientData.buttonBackground.startColor = updatedColorData.buttonBackground.startColor;
-//     colorGradientData.buttonBackground.endColor = updatedColorData.buttonBackground.endColor;
-//     colorGradientData.list_title_size.color = updatedColorData.list_title_size.color;
-//     colorGradientData.list_title_size.backgroundColor = updatedColorData.list_title_size.backgroundColor;
-//     colorGradientData.listbackground.backgroundColor = updatedColorData.listbackground.backgroundColor;
-//     colorGradientData.search_filter.backgroundColor = updatedColorData.search_filter.backgroundColor;
-//     colorGradientData.markerColor = updatedColorData.markerColor;
-
-//     // Update DetailPageButtonColor
-//     colorGradientData.constantData.isPropertyUpload = updatedColorData.constantData.isPropertyUpload;
-//     colorGradientData.constantData.homeUrls = updatedColorData.constantData.homeUrls;
-//     colorGradientData.constantData.isStrokeFilter = updatedColorData.constantData.isStrokeFilter;
-//     colorGradientData.constantData.isMaterialElevation = updatedColorData.constantData.isMaterialElevation;
-//     colorGradientData.constantData.headerHeight = updatedColorData.constantData.headerHeight;
-//     colorGradientData.constantData.appPackageName = updatedColorData.constantData.appPackageName;
-//     colorGradientData.constantData.defaultLanguage = updatedColorData.constantData.defaultLanguage;
-//     colorGradientData.constantData.currencyCode = updatedColorData.constantData.currencyCode;
-//     colorGradientData.constantData.appName = updatedColorData.constantData.appName;
-//     colorGradientData.constantData.appEmail = updatedColorData.constantData.appEmail;
-//     colorGradientData.constantData.appLogo = updatedColorData.constantData.appLogo;
-//     colorGradientData.constantData.appCompany = updatedColorData.constantData.appCompany;
-//     colorGradientData.constantData.appWebsite = updatedColorData.constantData.appWebsite;
-//     colorGradientData.constantData.appContact = updatedColorData.constantData.appContact;
-//     colorGradientData.constantData.facebookLink = updatedColorData.constantData.facebookLink;
-//     colorGradientData.constantData.twitterLink = updatedColorData.constantData.twitterLink;
-//     colorGradientData.constantData.instagramLink = updatedColorData.constantData.instagramLink;
-//     colorGradientData.constantData.youtubeLink = updatedColorData.constantData.youtubeLink;
-//     colorGradientData.constantData.googlePlayLink = updatedColorData.constantData.googlePlayLink;
-//     colorGradientData.constantData.appleStoreLink = updatedColorData.constantData.appleStoreLink;
-//     colorGradientData.constantData.appVersion = updatedColorData.constantData.appVersion;
-//     colorGradientData.constantData.appUpdateHideShow = updatedColorData.constantData.appUpdateHideShow;
-//     colorGradientData.constantData.appUpdateVersionCode = updatedColorData.constantData.appUpdateVersionCode;
-//     colorGradientData.constantData.appUpdateDesc = updatedColorData.constantData.appUpdateDesc;
-//     colorGradientData.constantData.appUpdateLink = updatedColorData.constantData.appUpdateLink;
-//     colorGradientData.constantData.appUpdateCancelOption = updatedColorData.constantData.appUpdateCancelOption;
-//     colorGradientData.constantData.priceColor = updatedColorData.constantData.priceColor;
-//     colorGradientData.constantData.callButtonColor = updatedColorData.constantData.callButtonColor;
-//     colorGradientData.constantData.isCallDirect = updatedColorData.constantData.isCallDirect;
-//     colorGradientData.constantData.DetailPageButtonColor.startColor = updatedColorData.constantData.DetailPageButtonColor.startColor;
-//     colorGradientData.constantData.DetailPageButtonColor.endColor = updatedColorData.constantData.DetailPageButtonColor.endColor;
-//     colorGradientData.constantData.homePageLayoutOrder = updatedColorData.constantData.homePageLayoutOrder;
-//     colorGradientData.constantData.shadowOnImage = updatedColorData.constantData.shadowOnImage;
-
-//     res.status(200).json(colorGradientData);
-//   } else {
-//     res.status(400).json({ error: 'Invalid color data' });
-//   }
-// });
-
-
-
 
 
 // MongoDB Connection
@@ -832,76 +767,73 @@ app.post('/api/upload/property', upload.fields([
 
 
 
+app.get('/api/properties/filter', async (req, res) => {
+  try {
+      const { 
+          bedrooms, bathrooms, purpose, latitude, longitude, 
+          priceMin, priceMax, type_name, sort
+      } = req.query;
 
-/// filter code ========= // 
+      let radius = req.query.radius ? parseFloat(req.query.radius) : 10;
 
-  app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax ,type_name} = req.query;
-    let radius = req.query.radius ? parseFloat(req.query.radius) : 10; // Use provided radius or default to 0.5
-
-    let filter = {};
-    
-    // Basic attribute filters
-    if (bedrooms) {
-        filter.bedrooms = Number(bedrooms);
-        console.log(`Filtering by bedrooms: ${bedrooms}`);
-    }
-    if (bathrooms) {
-        filter.bathrooms = Number(bathrooms);
-        console.log(`Filtering by bathrooms: ${bathrooms}`);
-    }
-    if (purpose) {
-        filter.purpose = purpose;
-        console.log(`Filtering by purpose: ${purpose}`);
-    }
-    if (priceMin) {
-        filter.price = { ...filter.price, $gte: Number(priceMin) };
-        console.log(`Filtering with priceMin: ${priceMin}`);
-    }
-    if (priceMax) {
-        filter.price = { ...filter.price, $lte: Number(priceMax) };
-        console.log(`Filtering with priceMax: ${priceMax}`);
-    }
-
-    // Adding geospatial query if latitude and longitude are provided
-    if (latitude && longitude) {
-        const radiusInMeters = radius * 1000; // Convert radius to meters
-        filter.location = {
-            $nearSphere: {
-                $geometry: {
-                    type: "Point",
-                    coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                },
-                $maxDistance: radiusInMeters
-            }
-        };
-        console.log(`Adding geospatial filter with radius: ${radius} km, latitude: ${latitude}, longitude: ${longitude}`);
-    }
-
-        // Filtering by type_name
-        if (type_name) {
-          filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
-          console.log(`Filtering by type_name: ${type_name}`);
+      // Input validation
+      if (radius < 0 || radius > 100) {
+          return res.status(400).json({ message: "Invalid radius. Must be between 0 and 100 km." });
       }
 
-  
-    try {
-        console.log('Executing property search with filter:', filter);
-        let properties = await Property.find(filter);
+      let filter = {};
+      
+      // Basic attribute filters
+      if (bedrooms) filter.bedrooms = Number(bedrooms);
+      if (bathrooms) filter.bathrooms = Number(bathrooms);
+      if (purpose) filter.purpose = purpose;
+      if (priceMin || priceMax) {
+          filter.price = {};
+          if (priceMin) filter.price.$gte = Number(priceMin);
+          if (priceMax) filter.price.$lte = Number(priceMax);
+      }
 
-          // Log the filtered properties
-             properties.forEach(property => {
-                console.log('Property:', property);
-             });
+      // Geospatial query
+      if (latitude && longitude) {
+          const radiusInMeters = radius * 1000;
+          filter.location = {
+              $nearSphere: {
+                  $geometry: {
+                      type: "Point",
+                      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+                  },
+                  $maxDistance: radiusInMeters
+              }
+          };
+      }
 
-        console.log(`Found ${properties.length} properties matching filter`);
-        res.json(properties);
-    } catch (error) {
-        console.error('Error fetching properties:', error);
-        res.status(500).json({ message: error.message });
-    }
+      // Type name filter
+      if (type_name) {
+          filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+      }
+
+      // Sorting
+      let sortOption = {};
+      if (sort) {
+          const [field, order] = sort.split(':');
+          sortOption[field] = order === 'desc' ? -1 : 1;
+      }
+
+      console.log('Executing property search with filter:', filter);
+
+      const properties = await Property.find(filter)
+          .sort(sortOption)
+          .lean();
+
+      console.log(`Found ${properties.length} properties matching filter`);
+
+      res.json(properties);
+
+  } catch (error) {
+      console.error('Error fetching properties:', error);
+      res.status(500).json({ message: "An error occurred while fetching properties." });
+  }
 });
-
 
 // New API for filtering properties by price range
 app.get('/api/properties/priceRange', async (req, res) => {
