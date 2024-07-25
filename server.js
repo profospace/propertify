@@ -286,95 +286,94 @@ app.get('/constant', (req, res) => {
 //   }
 // };
 
-const colorGradientData = {
-  header: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  button: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  buttonBackground: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  list_title_size: {
-    color: '#333333',
-    backgroundColor: '#f2f2f2'
-  },
-  listbackground: {
-    backgroundColor: '#ffffff'
-  },
-  search_filter: {
-    backgroundColor: '#eeeeee'
-  },
-  list_price_size: 14,
-  markerColor: '#FF5733',
-  constantData: {
-    isPropertyUpload: true,
-    homeUrls: [],
-    isStrokeFilter: false,
-    isMaterialElevation: false,
-    headerHeight: 290,
-    appPackageName: '',
-    defaultLanguage: '',
-    currencyCode: 'INR',
-    appName: 'OFO',
-    appEmail: '',
-    appLogo: '',
-    appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
-    appWebsite: "",
-    appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
-    facebookLink: '',
-    twitterLink: '',
-    instagramLink: '',
-    youtubeLink: '',
-    googlePlayLink: '',
-    appleStoreLink: '',
-    appVersion: '',
-    appUpdateHideShow: '',
-    appUpdateVersionCode: 0,
-    appUpdateDesc: '',
-    appUpdateLink: '',
-    appUpdateCancelOption: '',
-    priceColor: '#9C27B0',
-    callButtonColor: '#246bfd',
-    DetailPageButtonColor: {
-      startColor: '',
-      endColor: ''
-    },
-    isCallDirect: false,
-    homePageLayoutOrder: [1, 3, 4, 5, 6],
-    shadowOnImage: false
-  },
-  ads: [
-    {
-      name: "Ad1",
-      pagelink: "https://example.com/ad1",
-      imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
-      contact: ["contact1@example.com", "123-456-7890"]
-    },
-    {
-      name: "Ad2",
-      pagelink: "https://example.com/ad2",
-      imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
-      contact: ["contact2@example.com", "098-765-4321"]
-    }
-  ]
-};
+// const colorGradientData = {
+//   header: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   button: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   buttonBackground: {
+//     startColor: '#ee0979',
+//     endColor: '#ff6a00'
+//   },
+//   list_title_size: {
+//     color: '#333333',
+//     backgroundColor: '#f2f2f2'
+//   },
+//   listbackground: {
+//     backgroundColor: '#ffffff'
+//   },
+//   search_filter: {
+//     backgroundColor: '#eeeeee'
+//   },
+//   list_price_size: 14,
+//   markerColor: '#FF5733',
+//   constantData: {
+//     isPropertyUpload: true,
+//     homeUrls: [],
+//     isStrokeFilter: false,
+//     isMaterialElevation: false,
+//     headerHeight: 290,
+//     appPackageName: '',
+//     defaultLanguage: '',
+//     currencyCode: 'INR',
+//     appName: 'OFO',
+//     appEmail: '',
+//     appLogo: '',
+//     appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
+//     appWebsite: "",
+//     appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
+//     facebookLink: '',
+//     twitterLink: '',
+//     instagramLink: '',
+//     youtubeLink: '',
+//     googlePlayLink: '',
+//     appleStoreLink: '',
+//     appVersion: '',
+//     appUpdateHideShow: '',
+//     appUpdateVersionCode: 0,
+//     appUpdateDesc: '',
+//     appUpdateLink: '',
+//     appUpdateCancelOption: '',
+//     priceColor: '#9C27B0',
+//     callButtonColor: '#246bfd',
+//     DetailPageButtonColor: {
+//       startColor: '',
+//       endColor: ''
+//     },
+//     isCallDirect: false,
+//     homePageLayoutOrder: [1, 3, 4, 5, 6],
+//     shadowOnImage: false
+//   },
+//   ads: [
+//     {
+//       name: "Ad1",
+//       pagelink: "https://example.com/ad1",
+//       imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
+//       contact: ["contact1@example.com", "123-456-7890"]
+//     },
+//     {
+//       name: "Ad2",
+//       pagelink: "https://example.com/ad2",
+//       imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
+//       contact: ["contact2@example.com", "098-765-4321"]
+//     }
+//   ]
+// };
 
-// Save the color gradient data to MongoDB
-app.post('/api/colors/save', async (req, res) => {
-  try {
-    const newColorGradientData = new ColorGradient(colorGradientData);
-    await newColorGradientData.save();
-    res.status(200).json(newColorGradientData);
-  } catch (error) {
-    console.error('Error saving color gradient data:', error);
-    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
-  }
-});
+// app.post('/api/colors/save', async (req, res) => {
+//   try {
+//     const newColorGradientData = new ColorGradient(colorGradientData);
+//     await newColorGradientData.save();
+//     res.status(200).json(newColorGradientData);
+//   } catch (error) {
+//     console.error('Error saving color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
+//   }
+// });
 
 // Retrieve the color gradient data from MongoDB
 app.get('/api/colors', async (req, res) => {
