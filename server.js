@@ -18,6 +18,7 @@ const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
 const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
+const ListOptions = require('./ListOptions');
 
 
 const util = require('util');
@@ -613,8 +614,6 @@ app.post('/api/upload/property', upload.fields([
 });
 
 
-
-
 app.get('/api/properties/filter', async (req, res) => {
   try {
       const { 
@@ -751,6 +750,110 @@ app.put('/api/properties/:id', async (req, res) => {
 });
 
 
+app.get('/api/list-options', async (req, res) => {
+  try {
+    const options = await ListOptions.find();
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching list options:', error);
+    res.status(500).json({ message: 'Error fetching list options', error: error.message });
+  }
+});
+
+// Get a specific list option by listName
+app.get('/api/list-options/:listName', async (req, res) => {
+  try {
+    const options = await ListOptions.findOne({ listName: req.params.listName });
+    if (!options) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching list options:', error);
+    res.status(500).json({ message: 'Error fetching list options', error: error.message });
+  }
+});
+
+// Create a new list option
+app.post('/api/list-options', async (req, res) => {
+  try {
+    const newListOption = new ListOptions(req.body);
+    const savedListOption = await newListOption.save();
+    res.status(201).json(savedListOption);
+  } catch (error) {
+    console.error('Error creating list option:', error);
+    res.status(400).json({ message: 'Error creating list option', error: error.message });
+  }
+});
+
+// Update an existing list option
+app.put('/api/list-options/:listName', async (req, res) => {
+  try {
+    const updatedListOption = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedListOption) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(updatedListOption);
+  } catch (error) {
+    console.error('Error updating list option:', error);
+    res.status(400).json({ message: 'Error updating list option', error: error.message });
+  }
+});
+
+// Delete a list option
+app.delete('/api/list-options/:listName', async (req, res) => {
+  try {
+    const deletedListOption = await ListOptions.findOneAndDelete({ listName: req.params.listName });
+    if (!deletedListOption) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json({ message: 'List option deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting list option:', error);
+    res.status(500).json({ message: 'Error deleting list option', error: error.message });
+  }
+});
+
+// Add a new option to a specific list
+app.post('/api/list-options/:listName/add-option', async (req, res) => {
+  try {
+    const { imagelink, textview, link } = req.body;
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      { $push: { options: { imagelink, textview, link } } },
+      { new: true, runValidators: true }
+    );
+    if (!updatedList) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(updatedList);
+  } catch (error) {
+    console.error('Error adding option to list:', error);
+    res.status(400).json({ message: 'Error adding option to list', error: error.message });
+  }
+});
+
+// Remove an option from a specific list
+app.delete('/api/list-options/:listName/remove-option/:optionId', async (req, res) => {
+  try {
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      { $pull: { options: { _id: req.params.optionId } } },
+      { new: true }
+    );
+    if (!updatedList) {
+      return res.status(404).json({ message: 'List or option not found' });
+    }
+    res.json(updatedList);
+  } catch (error) {
+    console.error('Error removing option from list:', error);
+    res.status(400).json({ message: 'Error removing option from list', error: error.message });
+  }
+});
 
 
 app.get('/api/update_gallery_all_properties', async (req, res) => {

@@ -9,7 +9,7 @@ const AWS = require('aws-sdk');
 const multer = require('multer');
 const app = express();
 const cors = require('cors'); // Import the cors middleware
-const PORT = process.env.PORT || 5054;
+const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
@@ -18,7 +18,11 @@ const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
 const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
+const ListOptions = require('./ListOptions');
+
+
 const util = require('util');
+
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, 'uploads/') // Make sure this path exists
@@ -219,159 +223,6 @@ app.get('/constant', (req, res) => {
 });
 
 
-// const colorGradientData = {
-//   header: {
-//     startColor: '#ee0979',
-//     endColor: '#ff6a00'
-//   },
-//   button: {
-//     startColor: '#ee0979',
-//     endColor: '#ff6a00'
-//   },
-//   buttonBackground: {
-//     startColor: '#ee0979',
-//     endColor: '#ff6a00'
-//   },
-//   list_title_size: {
-//     color: '#333333', // Change this color as needed
-//     backgroundColor: '#f2f2f2' // Change this color as needed
-//   },
-//   listbackground: {
-//     backgroundColor: '#ffffff' // Change this color as needed
-//   },
-//   search_filter: {
-//     backgroundColor: '#eeeeee' // Change this color as needed
-//   },
-//   list_price_size: 14,
-//   markerColor: '#FF5733', // Change this color as needed
-//   constantData: {
-//     isPropertyUpload: true,
-//     homeUrls: [],
-//     isStrokeFilter: false,
-//     isMaterialElevation: false,
-//     headerHeight: 290,
-//     appPackageName: '',
-//     defaultLanguage: '',
-//     currencyCode: '',
-//     appName: '',
-//     appEmail: '',
-//     appLogo: '',
-//     appCompany: '',
-//     appWebsite: '',
-//     appContact: '',
-//     facebookLink: '',
-//     twitterLink: '',
-//     instagramLink: '',
-//     youtubeLink: '',
-//     googlePlayLink: '',
-//     appleStoreLink: '',
-//     appVersion: '',
-//     appUpdateHideShow: '',
-//     appUpdateVersionCode: 0,
-//     appUpdateDesc: '',
-//     appUpdateLink: '',
-//     appUpdateCancelOption: '',
-//     priceColor: '',
-//     callButtonColor: '',
-//     DetailPageButtonColor: {
-//       startColor: '',
-//       endColor: ''
-//     },
-//     isCallDirect: false,
-//     homePageLayoutOrder: [1, 3, 4, 5, 6],
-//     shadowOnImage: false
-//   }
-// };
-
-const colorGradientData = {
-  header: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  button: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  buttonBackground: {
-    startColor: '#ee0979',
-    endColor: '#ff6a00'
-  },
-  list_title_size: {
-    color: '#333333',
-    backgroundColor: '#f2f2f2'
-  },
-  listbackground: {
-    backgroundColor: '#ffffff'
-  },
-  search_filter: {
-    backgroundColor: '#eeeeee'
-  },
-  list_price_size: 14,
-  markerColor: '#FF5733',
-  constantData: {
-    isPropertyUpload: true,
-    homeUrls: [],
-    isStrokeFilter: false,
-    isMaterialElevation: false,
-    headerHeight: 290,
-    appPackageName: '',
-    defaultLanguage: '',
-    currencyCode: 'INR',
-    appName: 'OFO',
-    appEmail: '',
-    appLogo: '',
-    appCompany: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_1.png",
-    appWebsite: "",
-    appContact: "https://wityysaver.s3.ap-south-1.amazonaws.com/geetika_udpated_animation.gif",
-    facebookLink: '',
-    twitterLink: '',
-    instagramLink: '',
-    youtubeLink: '',
-    googlePlayLink: '',
-    appleStoreLink: '',
-    appVersion: '',
-    appUpdateHideShow: '',
-    appUpdateVersionCode: 0,
-    appUpdateDesc: '',
-    appUpdateLink: '',
-    appUpdateCancelOption: '',
-    priceColor: '#9C27B0',
-    callButtonColor: '#246bfd',
-    DetailPageButtonColor: {
-      startColor: '',
-      endColor: ''
-    },
-    isCallDirect: false,
-    homePageLayoutOrder: [1, 3, 4, 5, 6],
-    shadowOnImage: false
-  },
-  ads: [
-    {
-      name: "Ad1",
-      pagelink: "https://example.com/ad1",
-      imagelinks: ["https://example.com/images/ad1/img1.jpg", "https://example.com/images/ad1/img2.jpg"],
-      contact: ["contact1@example.com", "123-456-7890"]
-    },
-    {
-      name: "Ad2",
-      pagelink: "https://example.com/ad2",
-      imagelinks: ["https://example.com/images/ad2/img1.jpg", "https://example.com/images/ad2/img2.jpg"],
-      contact: ["contact2@example.com", "098-765-4321"]
-    }
-  ]
-};
-
-// Save the color gradient data to MongoDB
-app.post('/api/colors/save', async (req, res) => {
-  try {
-    const newColorGradientData = new ColorGradient(colorGradientData);
-    await newColorGradientData.save();
-    res.status(200).json(newColorGradientData);
-  } catch (error) {
-    console.error('Error saving color gradient data:', error);
-    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to save color gradient data' });
-  }
-});
 
 // Retrieve the color gradient data from MongoDB
 app.get('/api/colors', async (req, res) => {
@@ -763,78 +614,73 @@ app.post('/api/upload/property', upload.fields([
 });
 
 
+app.get('/api/properties/filter', async (req, res) => {
+  try {
+      const { 
+          bedrooms, bathrooms, purpose, latitude, longitude, 
+          priceMin, priceMax, type_name, sort
+      } = req.query;
 
+      let radius = req.query.radius ? parseFloat(req.query.radius) : 10;
 
-
-/// filter code ========= // 
-
-  app.get('/api/properties/filter', async (req, res) => {
-    const { bedrooms, bathrooms, purpose, latitude, longitude, priceMin, priceMax ,type_name} = req.query;
-    let radius = req.query.radius ? parseFloat(req.query.radius) : 10; // Use provided radius or default to 0.5
-
-    let filter = {};
-    
-    // Basic attribute filters
-    if (bedrooms) {
-        filter.bedrooms = Number(bedrooms);
-        console.log(`Filtering by bedrooms: ${bedrooms}`);
-    }
-    if (bathrooms) {
-        filter.bathrooms = Number(bathrooms);
-        console.log(`Filtering by bathrooms: ${bathrooms}`);
-    }
-    if (purpose) {
-        filter.purpose = purpose;
-        console.log(`Filtering by purpose: ${purpose}`);
-    }
-    if (priceMin) {
-        filter.price = { ...filter.price, $gte: Number(priceMin) };
-        console.log(`Filtering with priceMin: ${priceMin}`);
-    }
-    if (priceMax) {
-        filter.price = { ...filter.price, $lte: Number(priceMax) };
-        console.log(`Filtering with priceMax: ${priceMax}`);
-    }
-
-    // Adding geospatial query if latitude and longitude are provided
-    if (latitude && longitude) {
-        const radiusInMeters = radius * 1000; // Convert radius to meters
-        filter.location = {
-            $nearSphere: {
-                $geometry: {
-                    type: "Point",
-                    coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                },
-                $maxDistance: radiusInMeters
-            }
-        };
-        console.log(`Adding geospatial filter with radius: ${radius} km, latitude: ${latitude}, longitude: ${longitude}`);
-    }
-
-        // Filtering by type_name
-        if (type_name) {
-          filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
-          console.log(`Filtering by type_name: ${type_name}`);
+      // Input validation
+      if (radius < 0 || radius > 100) {
+          return res.status(400).json({ message: "Invalid radius. Must be between 0 and 100 km." });
       }
 
-  
-    try {
-        console.log('Executing property search with filter:', filter);
-        let properties = await Property.find(filter);
+      let filter = {};
+      
+      // Basic attribute filters
+      if (bedrooms) filter.bedrooms = Number(bedrooms);
+      if (bathrooms) filter.bathrooms = Number(bathrooms);
+      if (purpose) filter.purpose = purpose;
+      if (priceMin || priceMax) {
+          filter.price = {};
+          if (priceMin) filter.price.$gte = Number(priceMin);
+          if (priceMax) filter.price.$lte = Number(priceMax);
+      }
 
-          // Log the filtered properties
-             properties.forEach(property => {
-                console.log('Property:', property);
-             });
+      // Geospatial query
+      if (latitude && longitude) {
+          const radiusInMeters = radius * 1000;
+          filter.location = {
+              $nearSphere: {
+                  $geometry: {
+                      type: "Point",
+                      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+                  },
+                  $maxDistance: radiusInMeters
+              }
+          };
+      }
 
-        console.log(`Found ${properties.length} properties matching filter`);
-        res.json(properties);
-    } catch (error) {
-        console.error('Error fetching properties:', error);
-        res.status(500).json({ message: error.message });
-    }
+      // Type name filter
+      if (type_name) {
+          filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+      }
+
+      // Sorting
+      let sortOption = {};
+      if (sort) {
+          const [field, order] = sort.split(':');
+          sortOption[field] = order === 'desc' ? -1 : 1;
+      }
+
+      console.log('Executing property search with filter:', filter);
+
+      const properties = await Property.find(filter)
+          .sort(sortOption)
+          .lean();
+
+      console.log(`Found ${properties.length} properties matching filter`);
+
+      res.json(properties);
+
+  } catch (error) {
+      console.error('Error fetching properties:', error);
+      res.status(500).json({ message: "An error occurred while fetching properties." });
+  }
 });
-
 
 // New API for filtering properties by price range
 app.get('/api/properties/priceRange', async (req, res) => {
@@ -854,6 +700,160 @@ app.get('/api/properties/priceRange', async (req, res) => {
   }
 });
 
+// Endpoint to fetch all properties
+app.get('/api/properties/all', async (req, res) => {
+  try {
+    const allProperties = await Property.find();
+    res.json(allProperties);
+  } catch (error) {
+    console.error('Error fetching properties from MongoDB:', error);
+    res.status(500).json({ message: 'Error fetching properties from MongoDB' });
+  }
+});
+
+// New endpoint to delete a property by ID
+app.delete('/api/properties/:id', async (req, res) => {
+  try {
+    const propertyId = req.params.id;
+    const deletedProperty = await Property.findByIdAndDelete(propertyId);
+    
+    if (!deletedProperty) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+    
+    res.json({ message: 'Property deleted successfully', deletedProperty });
+  } catch (error) {
+    console.error('Error deleting property:', error);
+    res.status(500).json({ message: 'Error deleting property' });
+  }
+});
+
+// New endpoint to update a property by ID
+app.put('/api/properties/:id', async (req, res) => {
+  try {
+    const propertyId = req.params.id;
+    const updateData = req.body;
+    
+    // Validate the update data here if needed
+    
+    const updatedProperty = await Property.findByIdAndUpdate(propertyId, updateData, { new: true });
+    
+    if (!updatedProperty) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+    
+    res.json({ message: 'Property updated successfully', property: updatedProperty });
+  } catch (error) {
+    console.error('Error updating property:', error);
+    res.status(500).json({ message: 'Error updating property' });
+  }
+});
+
+
+app.get('/api/list-options', async (req, res) => {
+  try {
+    const options = await ListOptions.find();
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching list options:', error);
+    res.status(500).json({ message: 'Error fetching list options', error: error.message });
+  }
+});
+
+// Get a specific list option by listName
+app.get('/api/list-options/:listName', async (req, res) => {
+  try {
+    const options = await ListOptions.findOne({ listName: req.params.listName });
+    if (!options) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching list options:', error);
+    res.status(500).json({ message: 'Error fetching list options', error: error.message });
+  }
+});
+
+// Create a new list option
+app.post('/api/list-options', async (req, res) => {
+  try {
+    const newListOption = new ListOptions(req.body);
+    const savedListOption = await newListOption.save();
+    res.status(201).json(savedListOption);
+  } catch (error) {
+    console.error('Error creating list option:', error);
+    res.status(400).json({ message: 'Error creating list option', error: error.message });
+  }
+});
+
+// Update an existing list option
+app.put('/api/list-options/:listName', async (req, res) => {
+  try {
+    const updatedListOption = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!updatedListOption) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(updatedListOption);
+  } catch (error) {
+    console.error('Error updating list option:', error);
+    res.status(400).json({ message: 'Error updating list option', error: error.message });
+  }
+});
+
+// Delete a list option
+app.delete('/api/list-options/:listName', async (req, res) => {
+  try {
+    const deletedListOption = await ListOptions.findOneAndDelete({ listName: req.params.listName });
+    if (!deletedListOption) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json({ message: 'List option deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting list option:', error);
+    res.status(500).json({ message: 'Error deleting list option', error: error.message });
+  }
+});
+
+// Add a new option to a specific list
+app.post('/api/list-options/:listName/add-option', async (req, res) => {
+  try {
+    const { imagelink, textview, link } = req.body;
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      { $push: { options: { imagelink, textview, link } } },
+      { new: true, runValidators: true }
+    );
+    if (!updatedList) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+    res.json(updatedList);
+  } catch (error) {
+    console.error('Error adding option to list:', error);
+    res.status(400).json({ message: 'Error adding option to list', error: error.message });
+  }
+});
+
+// Remove an option from a specific list
+app.delete('/api/list-options/:listName/remove-option/:optionId', async (req, res) => {
+  try {
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName: req.params.listName },
+      { $pull: { options: { _id: req.params.optionId } } },
+      { new: true }
+    );
+    if (!updatedList) {
+      return res.status(404).json({ message: 'List or option not found' });
+    }
+    res.json(updatedList);
+  } catch (error) {
+    console.error('Error removing option from list:', error);
+    res.status(400).json({ message: 'Error removing option from list', error: error.message });
+  }
+});
 
 
 app.get('/api/update_gallery_all_properties', async (req, res) => {
