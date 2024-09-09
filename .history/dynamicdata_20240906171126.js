@@ -1,28 +1,12 @@
 const mongoose = require('mongoose');
 
-
-const adTypeSchema = new mongoose.Schema({
-  type: {
-    type: String,
-    enum: ['BANNER', 'POPUP', 'INTERSTITIAL'],
-    required: true
-  },
-  // Fields for BANNER
-  width: Number,
-  height: Number,
-  // Field for POPUP
-  delay: Number,
-  // Field for INTERSTITIAL
-  fullscreen: Boolean
-}, { _id: false });
-
 const adSchema = new mongoose.Schema({
   name: String,
-  header: String,
+  header:String,
   pagelink: String,
   imagelinks: [String],
   contact: [String],
-  type: adTypeSchema
+  type:String
 });
 
 const colorGradientSchema = new mongoose.Schema({
