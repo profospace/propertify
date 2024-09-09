@@ -26,19 +26,6 @@ const listOptionsSchema = new mongoose.Schema({
   options: [optionSchema]
 });
 
-
-// MongoDB Connection
-mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log("MongoDB Connected");
-  createDummyEntries(); // Call the function to create dummy entries
-})
-.catch(err => console.error("MongoDB connection error:", err));
-
-
 // Create the model
 const ListOptions = mongoose.model('ListOptions', listOptionsSchema);
 
@@ -80,6 +67,13 @@ async function createDummyEntries() {
     console.error('Error creating dummy entries:', error);
   }
 }
+
+  try {
+    await ListOptions.insertMany(dummyData);
+    console.log('Dummy entries created successfully');
+  } catch (error) {
+    console.error('Error creating dummy entries:', error);
+  }
 
 
 // Call this function to populate the database with dummy entries
