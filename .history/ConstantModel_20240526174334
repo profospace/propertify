@@ -1,7 +1,0 @@
-const constantData = {
-  isPropertyUpload: true,
-  homeUrls: []
-  
-};
-
-module.exports = constantData;
