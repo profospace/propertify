@@ -340,44 +340,6 @@ app.post('/api/colors/update', async (req, res) => {
   }
 });
 
-app.post('/api/colors/update-ads', async (req, res) => {
-  try {
-    const updatedAds = req.body.ads;
-    console.log('Received updated ads:', updatedAds);
-
-    const colorData = await ColorGradient.findOne({});
-    if (colorData) {
-      // If colorData.ads doesn't exist, initialize it as an empty array
-      if (!Array.isArray(colorData.ads)) {
-        colorData.ads = [];
-      }
-
-      updatedAds.forEach(updatedAd => {
-        const existingAdIndex = colorData.ads.findIndex(ad => ad.name === updatedAd.name);
-        
-        if (existingAdIndex !== -1) {
-          // Update existing ad
-          colorData.ads[existingAdIndex] = {
-            ...colorData.ads[existingAdIndex],
-            ...updatedAd
-          };
-        } else {
-          // Add new ad
-          colorData.ads.push(updatedAd);
-        }
-      });
-
-      await colorData.save();
-      res.status(200).json(colorData);
-    } else {
-      res.status(400).json({ error: 'Color gradient data not found' });
-    }
-  } catch (error) {
-    console.error('Error updating ads:', error);
-    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update ads' });
-  }
-});
-
 // Define your API endpoint
 app.get('/api/colors', (req, res) => {
   // Send the color gradient data JSON object
