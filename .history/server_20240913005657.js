@@ -481,53 +481,6 @@ app.delete('/api/local-home-feed/:id', async (req, res) => {
   }
 });
 
-const NodeGeocoder = require('node-geocoder');
-
-const geocoder = NodeGeocoder({
-  provider: 'openstreetmap'
-});
-
-app.get('/api/local-home-feed/by-location', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.query;
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
-
-    // Get the city name from coordinates
-    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
-    
-    if (geoResults.length === 0) {
-      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
-    }
-
-    const city = geoResults[0].city;
-
-    if (!city) {
-      return res.status(404).json({ message: 'City not found for given coordinates' });
-    }
-
-    // Find LocalHomeFeed documents that include the matching city
-    const feeds = await LocalHomeFeed.find({ cities: city });
-
-    if (feeds.length === 0) {
-      return res.status(404).json({ message: 'No local home feed found for the determined city' });
-    }
-
-    // Filter items to only include the matching city
-    const filteredFeeds = feeds.map(feed => ({
-      ...feed.toObject(),
-      items: feed.items.filter(item => item.cityName === city)
-    }));
-
-    res.json(filteredFeeds);
-  } catch (error) {
-    console.error('Error in local home feed by location:', error);
-    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
-  }
-});
-
 
 app.get('/api/home-feed', async (req, res) => {
   try {

@@ -1,0 +1,45 @@
+const mongoose = require('mongoose');
+
+const localHomeFeedSchema = new mongoose.Schema({
+  sectionType: { type: String, required: true },
+  headerImage: { type: String, required: true },
+  title: { type: String, required: true },
+  subtitle: { type: String, required: true },
+  backgroundColor: { type: String, required: true },
+  buttonText: { type: String, required: true },
+  buttonLink: { type: String, required: true },
+  buttonColor: { type: String, required: true },
+  cities: [{ type: String, required: true }], // New field to store all cities in this feed
+  uiSchema: {
+    backgroundImage: String,
+    backgroundColor: String,
+    headerColor: String,
+    subHeaderColor: String,
+    ctaBackgroundColor: String,
+    ctaTextColor: String
+  },
+  items: [{
+    cityName: String,
+    latitude: Number,
+    longitude: Number,
+    image: String,
+    localities: [{
+      name: String,
+      type: String,
+      latitude: Number,
+      longitude: Number,
+      image: String,
+      cta: {
+        text: String,
+        link: String
+      }
+    }]
+  }]
+});
+
+// Create an index on the cities field for faster queries
+localHomeFeedSchema.index({ cities: 1 });
+
+const LocalHomeFeed = mongoose.model('LocalHomeFeed', localHomeFeedSchema);
+
+module.exports = LocalHomeFeed;
