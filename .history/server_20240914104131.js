@@ -329,11 +329,6 @@ app.post('/api/colors/update', async (req, res) => {
       });
       
       await colorData.save();
-
-      // Fetch the updated document from MongoDB and print it
-      const updatedDocument = await ColorGradient.findOne({});
-      console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
-
       res.status(200).json(colorData);
     } else {
       res.status(400).json({ error: 'Color gradient data not found' });
@@ -343,6 +338,7 @@ app.post('/api/colors/update', async (req, res) => {
     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
   }
 });
+
 app.post('/api/colors/update-ads', async (req, res) => {
   try {
     const updatedAds = req.body.ads;
