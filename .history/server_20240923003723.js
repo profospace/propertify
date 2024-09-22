@@ -707,7 +707,7 @@ app.get('/api/home-feed', async (req, res) => {
           id: hall._id,
           image: hall.post_image,
           title: hall.post_title,
-          location: hall.addss,
+          location: hall.address,
           capacity: `${hall.area}`,
           price: `₹${hall.price}`
         }))
