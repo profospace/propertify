@@ -583,6 +583,7 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
   }
 });
 
+
 app.get('/api/home-feed', async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
@@ -625,10 +626,10 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/shops-banner.jpg',
         title: 'Shops near you',
         subtitle: 'Discover local stores in your area',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#ffffff', // Light Pink
         buttonText: 'View All Shops',
         buttonLink: 'https://example.com/all-shops',
-        buttonColor: '#ede8fe',
+        buttonColor: '#ede8fe', // Hot Pink
         properties: shops.map(shop => ({
           id: shop._id,
           image: shop.post_image,
@@ -636,12 +637,7 @@ app.get('/api/home-feed', async (req, res) => {
           rating: '4.3',
           deliveryTime: '20-25 mins',
           location: shop.address,
-          tags: shop.amenities.slice(0, 3),
-          price: `₹${shop.price}`,
-          contact: shop.phone,
-          floor: shop.floor,
-          purpose: shop.purpose,
-          area: `${shop.area}`
+          tags: shop.amenities.slice(0, 3)
         }))
       },
       {
@@ -649,20 +645,16 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/apartments-banner.jpg',
         title: 'Apartments available',
         subtitle: 'Find your perfect home',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#ffffff', // Pale Green
         buttonText: 'Explore Apartments',
         buttonLink: 'https://example.com/all-apartments',
-        buttonColor: '#32CD32',
+        buttonColor: '#32CD32', // Lime Green
         properties: apartments.map(apartment => ({
           id: apartment._id,
           image: apartment.post_image,
           title: apartment.post_title,
           price: `₹${apartment.price}`,
-          location: apartment.address,
-          contact: apartment.phone,
-          floor: apartment.floor,
-          purpose: apartment.purpose,
-          area: `${apartment.area}`
+          location: apartment.address
         }))
       },
       {
@@ -670,10 +662,10 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/categories-banner.jpg',
         title: 'Categories',
         subtitle: 'Browse by property type',
-        backgroundColor: '#feece2',
+        backgroundColor: '#feece2', // Light Sky Blue
         buttonText: 'See All Categories',
         buttonLink: 'https://example.com/all-categories',
-        buttonColor: '#f17f3f',
+        buttonColor: '#f17f3f', // Dodger Blue
         options: listOptions ? listOptions.options : []
       },
       {
@@ -681,17 +673,17 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/warehouses-banner.jpg',
         title: 'Warehouses for rent',
         subtitle: 'Secure storage solutions',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#ffffff', // Peach Puff
         buttonText: 'Find Warehouses',
         buttonLink: 'https://example.com/all-warehouses',
-        buttonColor: '#e8fee5',
+        buttonColor: '#e8fee5', // Orange
         properties: warehouses.map(warehouse => ({
           id: warehouse._id,
           image: warehouse.post_image,
           title: warehouse.post_title,
           location: warehouse.address,
-          area: `${warehouse.area}`,
-          price: `₹${warehouse.price}`
+          area: `${warehouse.area} ${warehouse.areaUnit}`,
+          price: `₹${warehouse.price}/${warehouse.priceUnit}`
         }))
       },
       {
@@ -699,17 +691,17 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/halls-banner.jpg',
         title: 'Halls for events',
         subtitle: 'Perfect venues for your occasions',
-        backgroundColor: '#ffe9d4',
+        backgroundColor: '#ffe9d4', // Plum
         buttonText: 'Explore Halls',
         buttonLink: 'https://example.com/all-halls',
-        buttonColor: '#f2b58b',
+        buttonColor: '#f2b58b', // Dark Orchid
         properties: halls.map(hall => ({
           id: hall._id,
           image: hall.post_image,
           title: hall.post_title,
-          location: hall.addss,
-          capacity: `${hall.area}`,
-          price: `₹${hall.price}`
+          location: hall.address,
+          capacity: `${hall.area} ${hall.areaUnit}`,
+          price: `₹${hall.price}/${hall.priceUnit}`
         }))
       }
     ];

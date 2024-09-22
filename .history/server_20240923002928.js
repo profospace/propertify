@@ -637,11 +637,11 @@ app.get('/api/home-feed', async (req, res) => {
           deliveryTime: '20-25 mins',
           location: shop.address,
           tags: shop.amenities.slice(0, 3),
-          price: `₹${shop.price}`,
+          price: `₹${shop.price}/${shop.priceUnit}`,
           contact: shop.phone,
           floor: shop.floor,
           purpose: shop.purpose,
-          area: `${shop.area}`
+          area: `${shop.area} ${shop.areaUnit}`
         }))
       },
       {
@@ -657,12 +657,12 @@ app.get('/api/home-feed', async (req, res) => {
           id: apartment._id,
           image: apartment.post_image,
           title: apartment.post_title,
-          price: `₹${apartment.price}`,
+          price: `₹${apartment.price}/${apartment.priceUnit}`,
           location: apartment.address,
           contact: apartment.phone,
           floor: apartment.floor,
           purpose: apartment.purpose,
-          area: `${apartment.area}`
+          area: `${apartment.area} ${apartment.areaUnit}`
         }))
       },
       {
@@ -690,8 +690,8 @@ app.get('/api/home-feed', async (req, res) => {
           image: warehouse.post_image,
           title: warehouse.post_title,
           location: warehouse.address,
-          area: `${warehouse.area}`,
-          price: `₹${warehouse.price}`
+          area: `${warehouse.area} ${warehouse.areaUnit}`,
+          price: `₹${warehouse.price}/${warehouse.priceUnit}`
         }))
       },
       {
@@ -707,9 +707,9 @@ app.get('/api/home-feed', async (req, res) => {
           id: hall._id,
           image: hall.post_image,
           title: hall.post_title,
-          location: hall.addss,
-          capacity: `${hall.area}`,
-          price: `₹${hall.price}`
+          location: hall.address,
+          capacity: `${hall.area} ${hall.areaUnit}`,
+          price: `₹${hall.price}/${hall.priceUnit}`
         }))
       }
     ];
