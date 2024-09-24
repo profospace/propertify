@@ -669,7 +669,7 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
         title: listOption.listName,
         subtitle: `Browse ${listOption.listName}`,
-        backgroundColor: '#ffffff', // You might want to customize this per list
+        backgroundColor: '#feece2', // You might want to customize this per list
         buttonText: `See All ${listOption.listName}`,
         buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
         buttonColor: '#ffffff', // You might want to customize this per list
