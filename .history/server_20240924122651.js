@@ -725,7 +725,6 @@ app.get('/api/home-feed', async (req, res) => {
     res.status(500).json({ message: 'Error fetching home feed' });
   }
 });
-
 function generatePostId() {
   const maxDigits = 13;
   const maxNumber = Math.pow(10, maxDigits) - 1; // Maximum 13-digit number

@@ -617,9 +617,7 @@ app.get('/api/home-feed', async (req, res) => {
     const apartments = await getNearbyProperties('Apartment');
     const warehouses = await getNearbyProperties('Warehouses');
     const halls = await getNearbyProperties('Halls');
-
-    // Fetch all ListOptions
-    const allListOptions = await ListOptions.find().lean();
+    const listOptions = await ListOptions.findOne({ listName: 'Categories' });
 
     const homeFeed = [
       {
@@ -632,15 +630,17 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-shops',
         buttonColor: '#ede8fe',
         properties: shops.map(shop => ({
-          id: shop._id.toString(),
+          id: shop._id,
           image: shop.post_image,
           title: shop.post_title,
-          subtitle: shop.address, // Using address as subtitle
-          price: `₹${shop.price}`,
           rating: '4.3',
-          location: shop.address,
           deliveryTime: '20-25 mins',
-          tags: shop.amenities?.slice(0, 3) || [],
+          location: shop.address,
+          tags: shop.amenities.slice(0, 3),
+          price: `₹${shop.price}`,
+          contact: shop.phone,
+          floor: shop.floor,
+          purpose: shop.purpose,
           area: `${shop.area}`
         }))
       },
@@ -654,31 +654,28 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-apartments',
         buttonColor: '#32CD32',
         properties: apartments.map(apartment => ({
-          id: apartment._id.toString(),
+          id: apartment._id,
           image: apartment.post_image,
           title: apartment.post_title,
-          subtitle: apartment.address, // Using address as subtitle
           price: `₹${apartment.price}`,
           location: apartment.address,
+          contact: apartment.phone,
+          floor: apartment.floor,
+          purpose: apartment.purpose,
           area: `${apartment.area}`
         }))
       },
-      // Include all ListOptions as separate sections
-      ...allListOptions.map(listOption => ({
+      {
         sectionType: 'optionList',
-        headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
-        title: listOption.listName,
-        subtitle: `Browse ${listOption.listName}`,
-        backgroundColor: '#feece2', // You might want to customize this per list
-        buttonText: `See All ${listOption.listName}`,
-        buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
-        buttonColor: '#f17f3f', // You might want to customize this per list
-        options: listOption.options.map(option => ({
-          imagelink: option.imagelink,
-          textview: option.textview,
-          link: option.link
-        }))
-      })),
+        headerImage: 'https://example.com/categories-banner.jpg',
+        title: 'Categories',
+        subtitle: 'Browse by property type',
+        backgroundColor: '#feece2',
+        buttonText: 'See All Categories',
+        buttonLink: 'https://example.com/all-categories',
+        buttonColor: '#f17f3f',
+        options: listOptions ? listOptions.options : []
+      },
       {
         sectionType: 'propertyList',
         headerImage: 'https://example.com/warehouses-banner.jpg',
@@ -689,13 +686,12 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-warehouses',
         buttonColor: '#e8fee5',
         properties: warehouses.map(warehouse => ({
-          id: warehouse._id.toString(),
+          id: warehouse._id,
           image: warehouse.post_image,
           title: warehouse.post_title,
-          subtitle: warehouse.address, // Using address as subtitle
-          price: `₹${warehouse.price}`,
           location: warehouse.address,
-          area: `${warehouse.area}`
+          area: `${warehouse.area}`,
+          price: `₹${warehouse.price}`
         }))
       },
       {
@@ -708,13 +704,12 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-halls',
         buttonColor: '#f2b58b',
         properties: halls.map(hall => ({
-          id: hall._id.toString(),
+          id: hall._id,
           image: hall.post_image,
           title: hall.post_title,
-          subtitle: hall.address, // Using address as subtitle
-          price: `₹${hall.price}`,
           location: hall.address,
-          area: `${hall.area}`
+          capacity: `${hall.area}`,
+          price: `₹${hall.price}`
         }))
       }
     ];
