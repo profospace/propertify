@@ -703,7 +703,7 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/halls-banner.jpg',
         title: 'Halls for events',
         subtitle: 'Perfect venues for your occasions',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#ffe9d4',
         buttonText: 'Explore Halls',
         buttonLink: 'https://example.com/all-halls',
         buttonColor: '#ffffff',
