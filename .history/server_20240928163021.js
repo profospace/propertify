@@ -117,6 +117,27 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
+
+app.delete('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    const buildingId = req.params.buildingId;
+    
+    // Delete the building
+    const deletedBuilding = await Building.findOneAndDelete({ buildingId: buildingId });
+    
+    if (!deletedBuilding) {
+      return res.status(404).json({ message: 'Building not found' });
+    }
+    
+    res.json({ message: 'Building deleted successfully', deletedBuilding });
+  } catch (error) {
+    console.error('Error deleting building:', error);
+    res.status(500).json({ message: 'Error deleting building' });
+  }
+});
+
+
+
 // Verify OTP endpoint
 app.post('/api/verify-otp', async (req, res) => {
   const { phoneNumber, otp } = req.body;
@@ -235,16 +256,105 @@ app.get('/api/colors', async (req, res) => {
   }
 });
 
-// Update the color gradient data
+app.get('/api/colors/ads', async (req, res) => {
+  try {
+    const colorData = await ColorGradient.findOne({});
+    if (!colorData) {
+      return res.status(404).json({ message: 'Color gradient data not found' });
+    }
+    res.status(200).json(colorData.ads || []);
+  } catch (error) {
+    console.error('Error fetching ads:', error);
+    res.status(500).json({ message: 'Error fetching ads', error: error.message });
+  }
+});
+
+// Add a new ad
+app.post('/api/colors/ads', async (req, res) => {
+  try {
+    const newAd = req.body;
+    const colorData = await ColorGradient.findOne({});
+    if (!colorData) {
+      return res.status(404).json({ message: 'Color gradient data not found' });
+    }
+    colorData.ads = colorData.ads || [];
+    colorData.ads.push(newAd);
+    await colorData.save();
+    res.status(201).json(newAd);
+  } catch (error) {
+    console.error('Error adding new ad:', error);
+    res.status(500).json({ message: 'Error adding new ad', error: error.message });
+  }
+});
+
+// Update an existing ad
+app.put('/api/colors/ads/:adId', async (req, res) => {
+  try {
+    const { adId } = req.params;
+    const updatedAd = req.body;
+    const colorData = await ColorGradient.findOne({});
+    if (!colorData) {
+      return res.status(404).json({ message: 'Color gradient data not found' });
+    }
+    const adIndex = colorData.ads.findIndex(ad => ad._id.toString() === adId);
+    if (adIndex === -1) {
+      return res.status(404).json({ message: 'Ad not found' });
+    }
+    colorData.ads[adIndex] = { ...colorData.ads[adIndex].toObject(), ...updatedAd };
+    await colorData.save();
+    res.status(200).json(colorData.ads[adIndex]);
+  } catch (error) {
+    console.error('Error updating ad:', error);
+    res.status(500).json({ message: 'Error updating ad', error: error.message });
+  }
+});
+
+// Delete an ad
+app.delete('/api/colors/ads/:adId', async (req, res) => {
+  try {
+    const { adId } = req.params;
+    const colorData = await ColorGradient.findOne({});
+    if (!colorData) {
+      return res.status(404).json({ message: 'Color gradient data not found' });
+    }
+    colorData.ads = colorData.ads.filter(ad => ad._id.toString() !== adId);
+    await colorData.save();
+    res.status(200).json({ message: 'Ad deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting ad:', error);
+    res.status(500).json({ message: 'Error deleting ad', error: error.message });
+  }
+});
+
 app.post('/api/colors/update', async (req, res) => {
   try {
     const updatedColorData = req.body;
     console.log('Received request body:', updatedColorData);
-
+    
     const colorData = await ColorGradient.findOne({});
     if (colorData) {
-      Object.assign(colorData, updatedColorData);
+      // Only update fields that are present in the request body
+      Object.keys(updatedColorData).forEach(key => {
+        if (key === 'ads') {
+          // Check if ads array exists and has items
+          if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
+            // Check if any ad has a non-empty pagelink
+            const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
+            if (hasValidAds) {
+              colorData.ads = updatedColorData.ads;
+            }
+          }
+        } else {
+          colorData[key] = updatedColorData[key];
+        }
+      });
+      
       await colorData.save();
+
+      // Fetch the updated document from MongoDB and print it
+      const updatedDocument = await ColorGradient.findOne({});
+      console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
       res.status(200).json(colorData);
     } else {
       res.status(400).json({ error: 'Color gradient data not found' });
@@ -252,6 +362,43 @@ app.post('/api/colors/update', async (req, res) => {
   } catch (error) {
     console.error('Error updating color gradient data:', error);
     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+  }
+});
+app.post('/api/colors/update-ads', async (req, res) => {
+  try {
+    const updatedAds = req.body.ads;
+    console.log('Received updated ads:', updatedAds);
+
+    const colorData = await ColorGradient.findOne({});
+    if (colorData) {
+      // If colorData.ads doesn't exist, initialize it as an empty array
+      if (!Array.isArray(colorData.ads)) {
+        colorData.ads = [];
+      }
+
+      updatedAds.forEach(updatedAd => {
+        const existingAdIndex = colorData.ads.findIndex(ad => ad.name === updatedAd.name);
+        
+        if (existingAdIndex !== -1) {
+          // Update existing ad
+          colorData.ads[existingAdIndex] = {
+            ...colorData.ads[existingAdIndex],
+            ...updatedAd
+          };
+        } else {
+          // Add new ad
+          colorData.ads.push(updatedAd);
+        }
+      });
+
+      await colorData.save();
+      res.status(200).json(colorData);
+    } else {
+      res.status(400).json({ error: 'Color gradient data not found' });
+    }
+  } catch (error) {
+    console.error('Error updating ads:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update ads' });
   }
 });
 
@@ -340,7 +487,265 @@ app.get('/api/update_properties', async (req, res) => {
   }
 });
 
+// Add this to your server.js file
 
+const LocalHomeFeed = require('./LocalHomeFeed');
+
+// Create
+app.post('/api/local-home-feed', async (req, res) => {
+  try {
+    const feedData = req.body;
+    
+    // Extract unique cities from items
+    const cities = [...new Set(feedData.items.map(item => item.cityName))];
+    feedData.cities = cities;
+
+    const newFeed = new LocalHomeFeed(feedData);
+    const savedFeed = await newFeed.save();
+    res.status(201).json(savedFeed);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Read (all)
+app.get('/api/local-home-feed', async (req, res) => {
+  try {
+    const feeds = await LocalHomeFeed.find();
+    res.json(feeds);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Read (by ID)
+app.get('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const feed = await LocalHomeFeed.findById(req.params.id);
+    if (!feed) return res.status(404).json({ message: 'Feed not found' });
+    res.json(feed);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update
+app.put('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const feedData = req.body;
+    
+    // Extract unique cities from items
+    const cities = [...new Set(feedData.items.map(item => item.cityName))];
+    feedData.cities = cities;
+
+    const updatedFeed = await LocalHomeFeed.findByIdAndUpdate(req.params.id, feedData, { new: true });
+    if (!updatedFeed) return res.status(404).json({ message: 'Feed not found' });
+    res.json(updatedFeed);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete
+app.delete('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const deletedFeed = await LocalHomeFeed.findByIdAndDelete(req.params.id);
+    if (!deletedFeed) return res.status(404).json({ message: 'Feed not found' });
+    res.json({ message: 'Feed deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+const NodeGeocoder = require('node-geocoder');
+
+const geocoder = NodeGeocoder({
+  provider: 'openstreetmap'
+});
+
+app.get('/api/local-home-feed/by-location', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    
+    if (geoResults.length === 0) {
+      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
+    }
+
+    const city = geoResults[0].city;
+
+    if (!city) {
+      return res.status(404).json({ message: 'City not found for given coordinates' });
+    }
+
+    // Find LocalHomeFeed documents that include the matching city
+    const feeds = await LocalHomeFeed.find({ cities: city });
+
+    if (feeds.length === 0) {
+      return res.status(404).json({ message: 'No local home feed found for the determined city' });
+    }
+
+    // Filter items to only include the matching city
+    const filteredFeeds = feeds.map(feed => ({
+      ...feed.toObject(),
+      items: feed.items.filter(item => item.cityName === city)
+    }));
+
+    res.json(filteredFeeds);
+  } catch (error) {
+    console.error('Error in local home feed by location:', error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
+app.get('/api/home-feed', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const userLocation = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+    };
+
+    const maxDistance = 10000; // 10 km radius, adjust as needed
+
+    // Function to fetch nearby properties of a specific type
+    const getNearbyProperties = async (typeName, limit = 5) => {
+      return await Property.find({
+        type_name: typeName,
+        location: {
+          $near: {
+            $geometry: userLocation,
+            $maxDistance: maxDistance
+          }
+        }
+      })
+      .limit(limit)
+      .lean();
+    };
+
+    const shops = await getNearbyProperties('Shops');
+    const apartments = await getNearbyProperties('Apartment');
+    const warehouses = await getNearbyProperties('Warehouses');
+    const halls = await getNearbyProperties('Halls');
+
+    // Fetch all ListOptions
+    const allListOptions = await ListOptions.find().lean();
+
+    const homeFeed = [
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/shops-banner.jpg',
+        title: 'Shops near you',
+        subtitle: 'Discover local stores in your area',
+        backgroundColor: '#ffffff',
+        buttonText: 'View All Shops',
+        buttonLink: 'https://example.com/all-shops',
+        buttonColor: '#ede8fe',
+        properties: shops.map(shop => ({
+          id: shop._id.toString(),
+          image: shop.post_image,
+          title: shop.post_title,
+          subtitle: shop.address, // Using address as subtitle
+          price: `₹${shop.price}`,
+          rating: '4.3',
+          location: shop.address,
+          deliveryTime: '20-25 mins',
+          tags: shop.amenities?.slice(0, 3) || [],
+          area: `${shop.area}`
+        }))
+      },
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/apartments-banner.jpg',
+        title: 'Apartments available',
+        subtitle: 'Find your perfect home',
+        backgroundColor: '#ffffff',
+        buttonText: 'Explore Apartments',
+        buttonLink: 'https://example.com/all-apartments',
+        buttonColor: '#32CD32',
+        properties: apartments.map(apartment => ({
+          id: apartment._id.toString(),
+          image: apartment.post_image,
+          title: apartment.post_title,
+          subtitle: apartment.address, // Using address as subtitle
+          price: `₹${apartment.price}`,
+          location: apartment.address,
+          area: `${apartment.area}`
+        }))
+      },
+      // Include all ListOptions as separate sections
+      ...allListOptions.map(listOption => ({
+        sectionType: 'optionList',
+        headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
+        title: listOption.listName,
+        subtitle: `Browse ${listOption.listName}`,
+        backgroundColor: '#ffffff', // You might want to customize this per list
+        buttonText: `See All ${listOption.listName}`,
+        buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
+        buttonColor: '#ffffff', // You might want to customize this per list
+        options: listOption.options.map(option => ({
+          imagelink: option.imagelink,
+          textview: option.textview,
+          link: option.link
+        }))
+      })),
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/warehouses-banner.jpg',
+        title: 'Warehouses for rent',
+        subtitle: 'Secure storage solutions',
+        backgroundColor: '#ffffff',
+        buttonText: 'Find Warehouses',
+        buttonLink: 'https://example.com/all-warehouses',
+        buttonColor: '#e8fee5',
+        properties: warehouses.map(warehouse => ({
+          id: warehouse._id.toString(),
+          image: warehouse.post_image,
+          title: warehouse.post_title,
+          subtitle: warehouse.address, // Using address as subtitle
+          price: `₹${warehouse.price}`,
+          location: warehouse.address,
+          area: `${warehouse.area}`
+        }))
+      },
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/halls-banner.jpg',
+        title: 'Halls for events',
+        subtitle: 'Perfect venues for your occasions',
+        backgroundColor: '#ffffff',
+        buttonText: 'Explore Halls',
+        buttonLink: 'https://example.com/all-halls',
+        buttonColor: '#ffffff',
+        properties: halls.map(hall => ({
+          id: hall._id.toString(),
+          image: hall.post_image,
+          title: hall.post_title,
+          subtitle: hall.address, // Using address as subtitle
+          price: `₹${hall.price}`,
+          location: hall.address,
+          area: `${hall.area}`
+        }))
+      }
+    ];
+
+    res.json(homeFeed);
+  } catch (error) {
+    console.error('Error fetching home feed:', error);
+    res.status(500).json({ message: 'Error fetching home feed' });
+  }
+});
 
 function generatePostId() {
   const maxDigits = 13;
@@ -614,8 +1019,6 @@ app.post('/api/upload/property', upload.fields([
 });
 
 
-
-
 app.get('/api/properties/filter', async (req, res) => {
   try {
       const { 
@@ -751,6 +1154,44 @@ app.put('/api/properties/:id', async (req, res) => {
   }
 });
 
+// API to add a complete list with options
+app.post('/api/list-options/add-complete', async (req, res) => {
+  try {
+    const { listName, options } = req.body;
+
+    if (!listName || typeof listName !== 'string') {
+      return res.status(400).json({ message: 'listName must be a non-empty string' });
+    }
+
+    if (!Array.isArray(options) || options.length === 0) {
+      return res.status(400).json({ message: 'options must be a non-empty array' });
+    }
+
+    // Check if the list name already exists
+    let existingList = await ListOptions.findOne({ listName });
+
+    if (existingList) {
+      // If the list exists, update its options
+      existingList.options = options;
+      await existingList.save();
+      res.status(200).json({
+        message: 'List updated successfully',
+        list: existingList
+      });
+    } else {
+      // If the list doesn't exist, create a new one
+      const newListOption = new ListOptions({ listName, options });
+      await newListOption.save();
+      res.status(201).json({
+        message: 'List created successfully',
+        list: newListOption
+      });
+    }
+  } catch (error) {
+    console.error('Error adding/updating list:', error);
+    res.status(500).json({ message: 'Error adding/updating list', error: error.message });
+  }
+});
 
 app.get('/api/list-options', async (req, res) => {
   try {
