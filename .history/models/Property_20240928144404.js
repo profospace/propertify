@@ -38,21 +38,7 @@ const propertySchema = new mongoose.Schema({
   total_views: Number,
   favourite: Boolean,
   galleryList: [String],
-  relatedProperty: [String],
-  furnishStatus: String,
-  carpetArea: Number,
-  superBuiltupArea: Number,
-  available: Boolean,
-  category: Number,
-  tags: [String],
-  region: String,
-  construction_status: String,
-  possession: String,
-  broker_status: String,
-  facilities: [String],
-  location_advantage: [String],
-  project_details: String,
-  official_brochure: String
+  relatedProperty: [String]
 }, { timestamps: true });
 
 propertySchema.index({ location: '2dsphere' });

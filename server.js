@@ -117,6 +117,27 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
+
+app.delete('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    const buildingId = req.params.buildingId;
+    
+    // Delete the building
+    const deletedBuilding = await Building.findOneAndDelete({ buildingId: buildingId });
+    
+    if (!deletedBuilding) {
+      return res.status(404).json({ message: 'Building not found' });
+    }
+    
+    res.json({ message: 'Building deleted successfully', deletedBuilding });
+  } catch (error) {
+    console.error('Error deleting building:', error);
+    res.status(500).json({ message: 'Error deleting building' });
+  }
+});
+
+
+
 // Verify OTP endpoint
 app.post('/api/verify-otp', async (req, res) => {
   const { phoneNumber, otp } = req.body;
