@@ -1117,14 +1117,15 @@ app.get('/api/properties/all', async (req, res) => {
 });
 
 // New endpoint to delete a property by ID
-app.delete('/api/properties/:postId', async (req, res) => {
+app.delete('/api/properties/:id', async (req, res) => {
   try {
-    const postId = req.params.postId;
-    const deletedProperty = await Property.findOneAndDelete({ post_id: postId });
+    const propertyId = req.params.id;
+    const deletedProperty = await Property.findByIdAndDelete(propertyId);
     
     if (!deletedProperty) {
       return res.status(404).json({ message: 'Property not found' });
     }
+    
     res.json({ message: 'Property deleted successfully', deletedProperty });
   } catch (error) {
     console.error('Error deleting property:', error);
