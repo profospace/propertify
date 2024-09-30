@@ -1134,11 +1134,7 @@ app.put('/api/properties/:id', async (req, res) => {
     const propertyId = req.params.id;
     const updateData = req.body;
     
-    console.log('Updating property:', propertyId, 'with data:', updateData);
-    
-    if (!propertyId) {
-      return res.status(400).json({ message: 'Property ID is required' });
-    }
+    // Validate the update data here if needed
     
     const updatedProperty = await Property.findByIdAndUpdate(propertyId, updateData, { new: true });
     
@@ -1146,11 +1142,10 @@ app.put('/api/properties/:id', async (req, res) => {
       return res.status(404).json({ message: 'Property not found' });
     }
     
-    console.log('Property updated successfully:', updatedProperty);
     res.json({ message: 'Property updated successfully', property: updatedProperty });
   } catch (error) {
     console.error('Error updating property:', error);
-    res.status(500).json({ message: 'Error updating property', error: error.message });
+    res.status(500).json({ message: 'Error updating property' });
   }
 });
 
