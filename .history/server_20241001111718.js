@@ -937,28 +937,6 @@ app.get('/api/removeBuilding', async (req, res) => {
   }
 });
 
-router.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
-  try {
-    const { listName, optionId } = req.params;
-    const updatedOption = req.body;
-    
-    // Find the list and update the specific option
-    const result = await ListOption.findOneAndUpdate(
-      { listName: listName, "options._id": optionId },
-      { $set: { "options.$": updatedOption } },
-      { new: true }
-    );
-
-    if (!result) {
-      return res.status(404).json({ message: "List or option not found" });
-    }
-
-    res.json({ message: "Option updated successfully", updatedOption });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating option", error: error.message });
-  }
-});
-
 
 app.get('/api/buildings/:buildingId', async (req, res) => {
   try {
