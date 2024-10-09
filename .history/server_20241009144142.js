@@ -1128,8 +1128,6 @@ app.get('/api/properties/filter', async (req, res) => {
   }
 });
 
-
-
 // New API for filtering properties by price range
 app.get('/api/properties/priceRange', async (req, res) => {
   const { priceMin, priceMax } = req.query;
