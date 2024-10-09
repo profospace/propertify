@@ -937,7 +937,7 @@ app.get('/api/removeBuilding', async (req, res) => {
   }
 });
 
-router.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
   try {
     const { listName, optionId } = req.params;
     const updatedOption = req.body;
