@@ -117,6 +117,27 @@ app.post('/api/send-otp', async (req, res) => {
   }
 });
 
+
+app.delete('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    const buildingId = req.params.buildingId;
+    
+    // Delete the building
+    const deletedBuilding = await Building.findOneAndDelete({ buildingId: buildingId });
+    
+    if (!deletedBuilding) {
+      return res.status(404).json({ message: 'Building not found' });
+    }
+    
+    res.json({ message: 'Building deleted successfully', deletedBuilding });
+  } catch (error) {
+    console.error('Error deleting building:', error);
+    res.status(500).json({ message: 'Error deleting building' });
+  }
+});
+
+
+
 // Verify OTP endpoint
 app.post('/api/verify-otp', async (req, res) => {
   const { phoneNumber, otp } = req.body;
@@ -235,7 +256,6 @@ app.get('/api/colors', async (req, res) => {
   }
 });
 
-
 app.get('/api/colors/ads', async (req, res) => {
   try {
     const colorData = await ColorGradient.findOne({});
@@ -306,16 +326,35 @@ app.delete('/api/colors/ads/:adId', async (req, res) => {
   }
 });
 
-// Update the color gradient data
 app.post('/api/colors/update', async (req, res) => {
   try {
     const updatedColorData = req.body;
     console.log('Received request body:', updatedColorData);
-
+    
     const colorData = await ColorGradient.findOne({});
     if (colorData) {
-      Object.assign(colorData, updatedColorData);
+      // Only update fields that are present in the request body
+      Object.keys(updatedColorData).forEach(key => {
+        if (key === 'ads') {
+          // Check if ads array exists and has items
+          if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
+            // Check if any ad has a non-empty pagelink
+            const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
+            if (hasValidAds) {
+              colorData.ads = updatedColorData.ads;
+            }
+          }
+        } else {
+          colorData[key] = updatedColorData[key];
+        }
+      });
+      
       await colorData.save();
+
+      // Fetch the updated document from MongoDB and print it
+      const updatedDocument = await ColorGradient.findOne({});
+      console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
       res.status(200).json(colorData);
     } else {
       res.status(400).json({ error: 'Color gradient data not found' });
@@ -323,6 +362,43 @@ app.post('/api/colors/update', async (req, res) => {
   } catch (error) {
     console.error('Error updating color gradient data:', error);
     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+  }
+});
+app.post('/api/colors/update-ads', async (req, res) => {
+  try {
+    const updatedAds = req.body.ads;
+    console.log('Received updated ads:', updatedAds);
+
+    const colorData = await ColorGradient.findOne({});
+    if (colorData) {
+      // If colorData.ads doesn't exist, initialize it as an empty array
+      if (!Array.isArray(colorData.ads)) {
+        colorData.ads = [];
+      }
+
+      updatedAds.forEach(updatedAd => {
+        const existingAdIndex = colorData.ads.findIndex(ad => ad.name === updatedAd.name);
+        
+        if (existingAdIndex !== -1) {
+          // Update existing ad
+          colorData.ads[existingAdIndex] = {
+            ...colorData.ads[existingAdIndex],
+            ...updatedAd
+          };
+        } else {
+          // Add new ad
+          colorData.ads.push(updatedAd);
+        }
+      });
+
+      await colorData.save();
+      res.status(200).json(colorData);
+    } else {
+      res.status(400).json({ error: 'Color gradient data not found' });
+    }
+  } catch (error) {
+    console.error('Error updating ads:', error);
+    res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update ads' });
   }
 });
 
@@ -413,6 +489,121 @@ app.get('/api/update_properties', async (req, res) => {
 
 // Add this to your server.js file
 
+const LocalHomeFeed = require('./LocalHomeFeed');
+
+// Create
+app.post('/api/local-home-feed', async (req, res) => {
+  try {
+    const feedData = req.body;
+    
+    // Extract unique cities from items
+    const cities = [...new Set(feedData.items.map(item => item.cityName))];
+    feedData.cities = cities;
+
+    const newFeed = new LocalHomeFeed(feedData);
+    const savedFeed = await newFeed.save();
+    res.status(201).json(savedFeed);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Read (all)
+app.get('/api/local-home-feed', async (req, res) => {
+  try {
+    const feeds = await LocalHomeFeed.find();
+    res.json(feeds);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Read (by ID)
+app.get('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const feed = await LocalHomeFeed.findById(req.params.id);
+    if (!feed) return res.status(404).json({ message: 'Feed not found' });
+    res.json(feed);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update
+app.put('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const feedData = req.body;
+    
+    // Extract unique cities from items
+    const cities = [...new Set(feedData.items.map(item => item.cityName))];
+    feedData.cities = cities;
+
+    const updatedFeed = await LocalHomeFeed.findByIdAndUpdate(req.params.id, feedData, { new: true });
+    if (!updatedFeed) return res.status(404).json({ message: 'Feed not found' });
+    res.json(updatedFeed);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete
+app.delete('/api/local-home-feed/:id', async (req, res) => {
+  try {
+    const deletedFeed = await LocalHomeFeed.findByIdAndDelete(req.params.id);
+    if (!deletedFeed) return res.status(404).json({ message: 'Feed not found' });
+    res.json({ message: 'Feed deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+const NodeGeocoder = require('node-geocoder');
+
+const geocoder = NodeGeocoder({
+  provider: 'openstreetmap'
+});
+
+app.get('/api/local-home-feed/by-location', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    
+    if (geoResults.length === 0) {
+      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
+    }
+
+    const city = geoResults[0].city;
+
+    if (!city) {
+      return res.status(404).json({ message: 'City not found for given coordinates' });
+    }
+
+    // Find LocalHomeFeed documents that include the matching city
+    const feeds = await LocalHomeFeed.find({ cities: city });
+
+    if (feeds.length === 0) {
+      return res.status(404).json({ message: 'No local home feed found for the determined city' });
+    }
+
+    // Filter items to only include the matching city
+    const filteredFeeds = feeds.map(feed => ({
+      ...feed.toObject(),
+      items: feed.items.filter(item => item.cityName === city)
+    }));
+
+    res.json(filteredFeeds);
+  } catch (error) {
+    console.error('Error in local home feed by location:', error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
 app.get('/api/home-feed', async (req, res) => {
   try {
     const { latitude, longitude } = req.query;
@@ -447,26 +638,31 @@ app.get('/api/home-feed', async (req, res) => {
     const apartments = await getNearbyProperties('Apartment');
     const warehouses = await getNearbyProperties('Warehouses');
     const halls = await getNearbyProperties('Halls');
-    const listOptions = await ListOptions.findOne({ listName: 'Categories' });
+
+    // Fetch all ListOptions
+    const allListOptions = await ListOptions.find().lean();
 
     const homeFeed = [
-    
       {
         sectionType: 'propertyList',
         headerImage: 'https://example.com/shops-banner.jpg',
         title: 'Shops near you',
         subtitle: 'Discover local stores in your area',
-        backgroundColor: '#ffffff', // Light Pink
+        backgroundColor: '#ffffff',
         buttonText: 'View All Shops',
         buttonLink: 'https://example.com/all-shops',
-        buttonColor: '#ede8fe', // Hot Pink
+        buttonColor: '#ede8fe',
         properties: shops.map(shop => ({
-          id: shop._id,
+          id: shop._id.toString(),
           image: shop.post_image,
           title: shop.post_title,
+          subtitle: shop.address, // Using address as subtitle
+          price: `₹${shop.price}`,
           rating: '4.3',
+          location: shop.address,
           deliveryTime: '20-25 mins',
-          tags: shop.amenities.slice(0, 3)
+          tags: shop.amenities?.slice(0, 3) || [],
+          area: `${shop.area}`
         }))
       },
       {
@@ -474,44 +670,53 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/apartments-banner.jpg',
         title: 'Apartments available',
         subtitle: 'Find your perfect home',
-        backgroundColor: '#ffffff', // Pale Green
+        backgroundColor: '#ffffff',
         buttonText: 'Explore Apartments',
         buttonLink: 'https://example.com/all-apartments',
-        buttonColor: '#32CD32', // Lime Green
+        buttonColor: '#32CD32',
         properties: apartments.map(apartment => ({
-          id: apartment._id,
+          id: apartment._id.toString(),
           image: apartment.post_image,
           title: apartment.post_title,
+          subtitle: apartment.address, // Using address as subtitle
           price: `₹${apartment.price}`,
-          location: apartment.address
+          location: apartment.address,
+          area: `${apartment.area}`
         }))
       },
-      {
+      // Include all ListOptions as separate sections
+      ...allListOptions.map(listOption => ({
         sectionType: 'optionList',
-        headerImage: 'https://example.com/categories-banner.jpg',
-        title: 'Categories',
-        subtitle: 'Browse by property type',
-        backgroundColor: '#feece2', // Light Sky Blue
-        buttonText: 'See All Categories',
-        buttonLink: 'https://example.com/all-categories',
-        buttonColor: '#f17f3f', // Dodger Blue
-        options: listOptions ? listOptions.options : []
-      },
+        headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
+        title: listOption.listName,
+        subtitle: `Browse ${listOption.listName}`,
+        backgroundColor: '#ffffff', // You might want to customize this per list
+        buttonText: `See All ${listOption.listName}`,
+        buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
+        buttonColor: '#ffffff', // You might want to customize this per list
+        options: listOption.options.map(option => ({
+          imagelink: option.imagelink,
+          textview: option.textview,
+          link: option.link
+        }))
+      })),
       {
         sectionType: 'propertyList',
         headerImage: 'https://example.com/warehouses-banner.jpg',
         title: 'Warehouses for rent',
         subtitle: 'Secure storage solutions',
-        backgroundColor: '#ffffff', // Peach Puff
+        backgroundColor: '#ffffff',
         buttonText: 'Find Warehouses',
         buttonLink: 'https://example.com/all-warehouses',
-        buttonColor: '#e8fee5', // Orange
+        buttonColor: '#e8fee5',
         properties: warehouses.map(warehouse => ({
-          id: warehouse._id,
+          id: warehouse._id.toString(),
           image: warehouse.post_image,
           title: warehouse.post_title,
-          area: `${warehouse.area} ${warehouse.areaUnit}`,
-          price: `₹${warehouse.price}/${warehouse.priceUnit}`
+          subtitle: warehouse.address, // Using address as subtitle
+          price: `₹${warehouse.price}`,
+          location: warehouse.address,
+          area: `${warehouse.area}`
         }))
       },
       {
@@ -519,16 +724,18 @@ app.get('/api/home-feed', async (req, res) => {
         headerImage: 'https://example.com/halls-banner.jpg',
         title: 'Halls for events',
         subtitle: 'Perfect venues for your occasions',
-        backgroundColor: '#ffe9d4', // Plum
+        backgroundColor: '#ffffff',
         buttonText: 'Explore Halls',
         buttonLink: 'https://example.com/all-halls',
-        buttonColor: '#f2b58b', // Dark Orchid
+        buttonColor: '#ffffff',
         properties: halls.map(hall => ({
-          id: hall._id,
+          id: hall._id.toString(),
           image: hall.post_image,
           title: hall.post_title,
-          capacity: `${hall.area} ${hall.areaUnit}`,
-          price: `₹${hall.price}/${hall.priceUnit}`
+          subtitle: hall.address, // Using address as subtitle
+          price: `₹${hall.price}`,
+          location: hall.address,
+          area: `${hall.area}`
         }))
       }
     ];
@@ -618,6 +825,7 @@ app.get('/api/properties/all', async (req, res) => {
       res.status(500).json({ message: 'Error fetching properties from MongoDB' });
   }
 });
+
 app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryList', maxCount: 5 }]), async (req, res) => {
   try {
     console.log('Received request to save building details');
@@ -645,8 +853,27 @@ app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryLi
       console.log('No gallery images found');
     }
 
-    BuildingData.galleryList = uploadedImages[0];
-    console.log('Building data with updated galleryList:', BuildingData);
+    BuildingData.galleryList = uploadedImages;
+
+    // Handle new fields
+    BuildingData.numberOfFlatsAvailable = parseInt(BuildingData.numberOfFlatsAvailable);
+    BuildingData.totalFloors = parseInt(BuildingData.totalFloors);
+    
+    // Ensure flatsDetails is properly formatted
+    if (Array.isArray(BuildingData.flatsDetails)) {
+      BuildingData.flatsDetails = BuildingData.flatsDetails.map(detail => ({
+        floorNumber: parseInt(detail.floorNumber),
+        flatsOnFloor: parseInt(detail.flatsOnFloor),
+        availableFlats: parseInt(detail.availableFlats)
+      }));
+    }
+
+    // Handle connectedProperties (assuming these are Property IDs)
+    if (Array.isArray(BuildingData.connectedProperties)) {
+      BuildingData.connectedProperties = BuildingData.connectedProperties.map(id => mongoose.Types.ObjectId(id));
+    }
+
+    console.log('Building data with updated fields:', BuildingData);
     
     const newBuilding = new Building(BuildingData);
     await newBuilding.save();
@@ -710,35 +937,45 @@ app.get('/api/removeBuilding', async (req, res) => {
   }
 });
 
-
-app.get('/api/buildings/:buildingId', async (req, res) => {
+app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
   try {
-    // Extract the buildingId from the request parameters
-    const buildingId = req.params.buildingId;
+    const { listName, optionId } = req.params;
+    const updatedOption = req.body;
+    
+    // Find the list and update the specific option
+    const result = await ListOption.findOneAndUpdate(
+      { listName: listName, "options._id": optionId },
+      { $set: { "options.$": updatedOption } },
+      { new: true }
+    );
 
-    // Check if the buildingId is not provided or empty
-    if (!buildingId) {
-      return res.status(400).json({ error: 'Building ID is required' });
+    if (!result) {
+      return res.status(404).json({ message: "List or option not found" });
     }
 
-    // Find the building by its ID
-    const building = await Building.findOne({ buildingId: buildingId });
-
-    // If building is found, return it
-    if (building) {
-      res.json(building);
-    } else {
-      res.status(404).json({ error: 'Building not found' });
-    }
+    res.json({ message: "Option updated successfully", updatedOption });
   } catch (error) {
-    console.error('Error fetching building:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ message: "Error updating option", error: error.message });
   }
 });
 
 
+app.get('/api/buildings/:buildingId', async (req, res) => {
+  try {
+    const buildingId = req.params.buildingId;
+    const building = await Building.findOne({ buildingId: buildingId })
+      .populate('connectedProperties'); // This will populate the connectedProperties with actual Property documents
 
+    if (!building) {
+      return res.status(404).json({ error: 'Building not found' });
+    }
 
+    res.status(200).json(building);
+  } catch (error) {
+    console.error('Error fetching building details:', error);
+    res.status(500).json({ error: 'Error fetching building details' });
+  }
+});
 
 
 // Endpoint to upload a new property with images ===============================//
@@ -813,72 +1050,104 @@ app.post('/api/upload/property', upload.fields([
 
 
 app.get('/api/properties/filter', async (req, res) => {
+  console.log('Received filter request with query params:', req.query);
   try {
-      const { 
-          bedrooms, bathrooms, purpose, latitude, longitude, 
-          priceMin, priceMax, type_name, sort
-      } = req.query;
+    const { 
+      bedrooms, bathrooms, purpose, latitude, longitude, 
+      priceMin, priceMax, type_name, sort, radius,
+      furnishing, area, construction_status, price,
+      carpetArea, superBuiltupArea, available, category,
+      region, possession, broker_status
+    } = req.query;
+    let filter = {};
+    console.log('Constructing filter object...');
+    
+    // Basic attribute filters
+    if (bedrooms) {
+      filter.bedrooms = { $gte: Number(bedrooms) };
+    }
+    if (bathrooms) {
+      filter.bathrooms = { $gte: Number(bathrooms) };
+    }
+    if (purpose) {
+      filter.purpose = purpose;
+    }
+    if (priceMin || priceMax) {
+      filter.price = {};
+      if (priceMin) filter.price.$gte = Number(priceMin);
+      if (priceMax) filter.price.$lte = Number(priceMax);
+    }
+    if (type_name) {
+      filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    }
+    if (furnishing) {
+      filter.furnishing = furnishing;
+    }
+    if (area) {
+      filter.area = { $gte: Number(area) };
+    }
+    if (construction_status) {
+      filter.construction_status = construction_status;
+    }
+    if (carpetArea) {
+      filter.carpetArea = { $gte: Number(carpetArea) };
+    }
+    if (superBuiltupArea) {
+      filter.superBuiltupArea = { $gte: Number(superBuiltupArea) };
+    }
+    if (available !== undefined) {
+      filter.available = available === 'true';
+    }
+    if (category) {
+      filter.category = Number(category);
+    }
+    if (region) {
+      filter.region = region;
+    }
+    if (possession) {
+      filter.possession = possession;
+    }
+    if (broker_status) {
+      filter.broker_status = broker_status;
+    }
 
-      let radius = req.query.radius ? parseFloat(req.query.radius) : 10;
+    // Geospatial query
+    if (latitude && longitude) {
+      const radiusInKm = radius ? parseFloat(radius) : 50; // Default to 50 km if radius is not provided
+      const radiusInMeters = radiusInKm * 1000;
+      filter.$and = [
+        { latitude: { $gte: Number(latitude) - (radiusInKm / 111.32) } },
+        { latitude: { $lte: Number(latitude) + (radiusInKm / 111.32) } },
+        { longitude: { $gte: Number(longitude) - (radiusInKm / (111.32 * Math.cos(Number(latitude) * Math.PI / 180))) } },
+        { longitude: { $lte: Number(longitude) + (radiusInKm / (111.32 * Math.cos(Number(latitude) * Math.PI / 180))) } }
+      ];
+      console.log(`Added geospatial filter: lat ${latitude}, lon ${longitude}, radius ${radiusInMeters}m (${radiusInKm}km)`);
+    }
 
-      // Input validation
-      if (radius < 0 || radius > 100) {
-          return res.status(400).json({ message: "Invalid radius. Must be between 0 and 100 km." });
-      }
+    console.log('Final filter object:', JSON.stringify(filter, null, 2));
+    
+    // Sorting
+    let sortOption = {};
+    if (sort) {
+      const order = sort.toLowerCase() === 'desc' ? -1 : 1;
+      sortOption.price = order;
+    } else {
+      sortOption.price = 1; // Default sorting: price ascending
+    }
 
-      let filter = {};
-      
-      // Basic attribute filters
-      if (bedrooms) filter.bedrooms = Number(bedrooms);
-      if (bathrooms) filter.bathrooms = Number(bathrooms);
-      if (purpose) filter.purpose = purpose;
-      if (priceMin || priceMax) {
-          filter.price = {};
-          if (priceMin) filter.price.$gte = Number(priceMin);
-          if (priceMax) filter.price.$lte = Number(priceMax);
-      }
-
-      // Geospatial query
-      if (latitude && longitude) {
-          const radiusInMeters = radius * 1000;
-          filter.location = {
-              $nearSphere: {
-                  $geometry: {
-                      type: "Point",
-                      coordinates: [parseFloat(longitude), parseFloat(latitude)]
-                  },
-                  $maxDistance: radiusInMeters
-              }
-          };
-      }
-
-      // Type name filter
-      if (type_name) {
-          filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
-      }
-
-      // Sorting
-      let sortOption = {};
-      if (sort) {
-          const [field, order] = sort.split(':');
-          sortOption[field] = order === 'desc' ? -1 : 1;
-      }
-
-      console.log('Executing property search with filter:', filter);
-
-      const properties = await Property.find(filter)
-          .sort(sortOption)
-          .lean();
-
-      console.log(`Found ${properties.length} properties matching filter`);
-
-      res.json(properties);
-
+    console.log('Executing property search...');
+    const properties = await Property.find(filter)
+      .sort(sortOption)
+      .lean();
+    console.log(`Found ${properties.length} properties matching filter`);
+    res.json(properties);
   } catch (error) {
-      console.error('Error fetching properties:', error);
-      res.status(500).json({ message: "An error occurred while fetching properties." });
+    console.error('Error in /api/properties/filter:', error);
+    res.status(500).json({ message: "An error occurred while fetching properties.", error: error.message });
   }
 });
+
+
 
 // New API for filtering properties by price range
 app.get('/api/properties/priceRange', async (req, res) => {
@@ -910,15 +1179,14 @@ app.get('/api/properties/all', async (req, res) => {
 });
 
 // New endpoint to delete a property by ID
-app.delete('/api/properties/:id', async (req, res) => {
+app.delete('/api/properties/:postId', async (req, res) => {
   try {
-    const propertyId = req.params.id;
-    const deletedProperty = await Property.findByIdAndDelete(propertyId);
+    const postId = req.params.postId;
+    const deletedProperty = await Property.findOneAndDelete({ post_id: postId });
     
     if (!deletedProperty) {
       return res.status(404).json({ message: 'Property not found' });
     }
-    
     res.json({ message: 'Property deleted successfully', deletedProperty });
   } catch (error) {
     console.error('Error deleting property:', error);
@@ -926,27 +1194,73 @@ app.delete('/api/properties/:id', async (req, res) => {
   }
 });
 
-// New endpoint to update a property by ID
 app.put('/api/properties/:id', async (req, res) => {
   try {
     const propertyId = req.params.id;
     const updateData = req.body;
     
-    // Validate the update data here if needed
+    console.log('Updating property:', propertyId, 'with data:', updateData);
     
-    const updatedProperty = await Property.findByIdAndUpdate(propertyId, updateData, { new: true });
+    if (!propertyId) {
+      return res.status(400).json({ message: 'Property ID is required' });
+    }
+    
+    // Change this line to use post_id instead of _id
+    const updatedProperty = await Property.findOneAndUpdate(
+      { post_id: propertyId },
+      updateData,
+      { new: true }
+    );
     
     if (!updatedProperty) {
       return res.status(404).json({ message: 'Property not found' });
     }
     
+    console.log('Property updated successfully:', updatedProperty);
     res.json({ message: 'Property updated successfully', property: updatedProperty });
   } catch (error) {
     console.error('Error updating property:', error);
-    res.status(500).json({ message: 'Error updating property' });
+    res.status(500).json({ message: 'Error updating property', error: error.message });
   }
 });
+// API to add a complete list with options
+app.post('/api/list-options/add-complete', async (req, res) => {
+  try {
+    const { listName, options } = req.body;
 
+    if (!listName || typeof listName !== 'string') {
+      return res.status(400).json({ message: 'listName must be a non-empty string' });
+    }
+
+    if (!Array.isArray(options) || options.length === 0) {
+      return res.status(400).json({ message: 'options must be a non-empty array' });
+    }
+
+    // Check if the list name already exists
+    let existingList = await ListOptions.findOne({ listName });
+
+    if (existingList) {
+      // If the list exists, update its options
+      existingList.options = options;
+      await existingList.save();
+      res.status(200).json({
+        message: 'List updated successfully',
+        list: existingList
+      });
+    } else {
+      // If the list doesn't exist, create a new one
+      const newListOption = new ListOptions({ listName, options });
+      await newListOption.save();
+      res.status(201).json({
+        message: 'List created successfully',
+        list: newListOption
+      });
+    }
+  } catch (error) {
+    console.error('Error adding/updating list:', error);
+    res.status(500).json({ message: 'Error adding/updating list', error: error.message });
+  }
+});
 
 app.get('/api/list-options', async (req, res) => {
   try {
@@ -1002,6 +1316,7 @@ app.put('/api/list-options/:listName', async (req, res) => {
   }
 });
 
+
 // Delete a list option
 app.delete('/api/list-options/:listName', async (req, res) => {
   try {
@@ -1053,6 +1368,58 @@ app.delete('/api/list-options/:listName/remove-option/:optionId', async (req, re
   }
 });
 
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { name, iconUrl } = req.body;
+    const updatedCategory = await Category.findByIdAndUpdate(
+      req.params.id,
+      { name, iconUrl },
+      { new: true }
+    );
+    if (!updatedCategory) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json(updatedCategory);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ 
+      message: 'Error updating category', 
+      error: error.message 
+    });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const deletedCategory = await Category.findByIdAndDelete(req.params.id);
+    if (!deletedCategory) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ 
+      message: 'Error deleting category', 
+      error: error.message 
+    });
+  }
+});
+
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json(category);
+  } catch (error) {
+    console.error('Error retrieving category:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving category', 
+      error: error.message 
+    });
+  }
+});
 
 app.get('/api/update_gallery_all_properties', async (req, res) => {
   try {
