@@ -14,6 +14,7 @@ const mongoose = require('mongoose');
 const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
 const Building = require('./Building'); // Import the User model
+const Category = require('./Category')
 const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
 const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
@@ -1316,6 +1317,7 @@ app.put('/api/list-options/:listName', async (req, res) => {
   }
 });
 
+
 // Delete a list option
 app.delete('/api/list-options/:listName', async (req, res) => {
   try {
@@ -1367,6 +1369,58 @@ app.delete('/api/list-options/:listName/remove-option/:optionId', async (req, re
   }
 });
 
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { name, iconUrl } = req.body;
+    const updatedCategory = await Category.findByIdAndUpdate(
+      req.params.id,
+      { name, iconUrl },
+      { new: true }
+    );
+    if (!updatedCategory) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json(updatedCategory);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    res.status(500).json({ 
+      message: 'Error updating category', 
+      error: error.message 
+    });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const deletedCategory = await Category.findByIdAndDelete(req.params.id);
+    if (!deletedCategory) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    res.status(500).json({ 
+      message: 'Error deleting category', 
+      error: error.message 
+    });
+  }
+});
+
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findById(req.params.id);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+    res.status(200).json(category);
+  } catch (error) {
+    console.error('Error retrieving category:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving category', 
+      error: error.message 
+    });
+  }
+});
 
 app.get('/api/update_gallery_all_properties', async (req, res) => {
   try {
