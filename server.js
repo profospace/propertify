@@ -907,6 +907,51 @@ app.get('/api/properties/building/:buildingId', async (req, res) => {
 });
 
 
+
+app.get('/api/properties/emi-based', async (req, res) => {
+  try {
+    const { loanAmount, downPayment, interestRate, loanTenure } = req.query;
+
+    // Validate input parameters
+    if (!loanAmount || !downPayment || !interestRate || !loanTenure) {
+      return res.status(400).json({ message: 'All EMI parameters are required' });
+    }
+
+    // Convert parameters to numbers
+    const principal = parseFloat(loanAmount) + parseFloat(downPayment);
+    const rate = parseFloat(interestRate) / 100 / 12; // Monthly interest rate
+    const time = parseFloat(loanTenure) * 12; // Total months
+
+    // Calculate maximum affordable property price (which is principal in this case)
+    const maxPropertyPrice = principal;
+
+    // Find properties within the affordable price range
+    const affordableProperties = await Property.find({
+      price: { $lte: maxPropertyPrice }
+    }).sort({ price: -1 }); // Sort by price descending
+
+    // Calculate EMI for each property
+    const propertiesWithEMI = affordableProperties.map(property => {
+      const propertyLoanAmount = property.price - parseFloat(downPayment);
+      const emi = (propertyLoanAmount * rate * Math.pow(1 + rate, time)) / (Math.pow(1 + rate, time) - 1);
+      
+      return {
+        ...property.toObject(),
+        calculatedEMI: Math.round(emi)
+      };
+    });
+
+    res.json({
+      maxAffordablePrice: maxPropertyPrice,
+      properties: propertiesWithEMI
+    });
+
+  } catch (error) {
+    console.error('Error in EMI-based property search:', error);
+    res.status(500).json({ message: 'An error occurred while searching for properties', error: error.message });
+  }
+});
+
 // Route to get all building data
 app.get('/api/buildings', async (req, res) => {
   try {
@@ -1054,67 +1099,49 @@ app.get('/api/properties/filter', async (req, res) => {
   console.log('Received filter request with query params:', req.query);
   try {
     const { 
-      bedrooms, bathrooms, purpose, latitude, longitude, 
+      bedrooms, bathrooms, latitude, longitude, 
       priceMin, priceMax, type_name, sort, radius,
-      furnishing, area, construction_status, price,
+      furnishing, area, construction_status,
       carpetArea, superBuiltupArea, available, category,
-      region, possession, broker_status
+      region, possession, broker_status, purpose,
+      // EMI filter parameters
+      emiAmount, loanTenureYears
     } = req.query;
+
     let filter = {};
     console.log('Constructing filter object...');
-    
-    // Basic attribute filters
-    if (bedrooms) {
-      filter.bedrooms = { $gte: Number(bedrooms) };
-    }
-    if (bathrooms) {
-      filter.bathrooms = { $gte: Number(bathrooms) };
-    }
-    if (purpose) {
+
+    // Apply 'buy' purpose filter only if EMI parameters are present
+    if (emiAmount && loanTenureYears) {
+      filter.purpose = 'buy';
+    } else if (purpose) {
+      // If EMI parameters are not present, use the purpose provided in the query (if any)
       filter.purpose = purpose;
     }
+    
+    // Existing filter logic
+    if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
+    if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
       if (priceMax) filter.price.$lte = Number(priceMax);
     }
-    if (type_name) {
-      filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
-    }
-    if (furnishing) {
-      filter.furnishing = furnishing;
-    }
-    if (area) {
-      filter.area = { $gte: Number(area) };
-    }
-    if (construction_status) {
-      filter.construction_status = construction_status;
-    }
-    if (carpetArea) {
-      filter.carpetArea = { $gte: Number(carpetArea) };
-    }
-    if (superBuiltupArea) {
-      filter.superBuiltupArea = { $gte: Number(superBuiltupArea) };
-    }
-    if (available !== undefined) {
-      filter.available = available === 'true';
-    }
-    if (category) {
-      filter.category = Number(category);
-    }
-    if (region) {
-      filter.region = region;
-    }
-    if (possession) {
-      filter.possession = possession;
-    }
-    if (broker_status) {
-      filter.broker_status = broker_status;
-    }
+    if (type_name) filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    if (furnishing) filter.furnishing = furnishing;
+    if (area) filter.area = { $gte: Number(area) };
+    if (construction_status) filter.construction_status = construction_status;
+    if (carpetArea) filter.carpetArea = { $gte: Number(carpetArea) };
+    if (superBuiltupArea) filter.superBuiltupArea = { $gte: Number(superBuiltupArea) };
+    if (available !== undefined) filter.available = available === 'true';
+    if (category) filter.category = Number(category);
+    if (region) filter.region = region;
+    if (possession) filter.possession = possession;
+    if (broker_status) filter.broker_status = broker_status;
 
     // Geospatial query
     if (latitude && longitude) {
-      const radiusInKm = radius ? parseFloat(radius) : 50; // Default to 50 km if radius is not provided
+      const radiusInKm = radius ? parseFloat(radius) : 50;
       const radiusInMeters = radiusInKm * 1000;
       filter.$and = [
         { latitude: { $gte: Number(latitude) - (radiusInKm / 111.32) } },
@@ -1122,7 +1149,6 @@ app.get('/api/properties/filter', async (req, res) => {
         { longitude: { $gte: Number(longitude) - (radiusInKm / (111.32 * Math.cos(Number(latitude) * Math.PI / 180))) } },
         { longitude: { $lte: Number(longitude) + (radiusInKm / (111.32 * Math.cos(Number(latitude) * Math.PI / 180))) } }
       ];
-      console.log(`Added geospatial filter: lat ${latitude}, lon ${longitude}, radius ${radiusInMeters}m (${radiusInKm}km)`);
     }
 
     console.log('Final filter object:', JSON.stringify(filter, null, 2));
@@ -1137,17 +1163,41 @@ app.get('/api/properties/filter', async (req, res) => {
     }
 
     console.log('Executing property search...');
-    const properties = await Property.find(filter)
-      .sort(sortOption)
-      .lean();
+    let properties = await Property.find(filter).sort(sortOption).lean();
     console.log(`Found ${properties.length} properties matching filter`);
-    res.json(properties);
+
+    // EMI-based filtering
+    if (emiAmount && loanTenureYears) {
+      const emiValue = parseFloat(emiAmount);
+      const tenureMonths = parseFloat(loanTenureYears) * 12;
+      const maxAffordablePrice = emiValue * tenureMonths;
+
+      properties = properties.map(property => {
+        const affordabilityRatio = property.price / maxAffordablePrice;
+        return {
+          ...property,
+          affordabilityRatio,
+          isAffordable: affordabilityRatio <= 1,
+          emiPercentage: (emiValue / property.price) * 100
+        };
+      });
+
+      // Filter out unaffordable properties
+      properties = properties.filter(property => property.isAffordable);
+
+      // Sort properties by affordability ratio (most affordable first)
+      properties.sort((a, b) => a.affordabilityRatio - b.affordabilityRatio);
+    }
+
+    res.json({
+      totalProperties: properties.length,
+      properties: properties
+    });
   } catch (error) {
     console.error('Error in /api/properties/filter:', error);
     res.status(500).json({ message: "An error occurred while fetching properties.", error: error.message });
   }
 });
-
 
 
 // New API for filtering properties by price range
