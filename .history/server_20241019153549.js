@@ -654,7 +654,7 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-shops',
         buttonColor: '#ede8fe',
         properties: shops.map(shop => ({
-          id: shop.post_id.toString(),
+          id: shop._id.toString(),
           image: shop.post_image,
           title: shop.post_title,
           subtitle: shop.address, // Using address as subtitle
@@ -676,7 +676,7 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-apartments',
         buttonColor: '#32CD32',
         properties: apartments.map(apartment => ({
-          id: apartment.post_id.toString(),
+          id: apartment._id.toString(),
           image: apartment.post_image,
           title: apartment.post_title,
           subtitle: apartment.address, // Using address as subtitle
@@ -711,7 +711,7 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-warehouses',
         buttonColor: '#e8fee5',
         properties: warehouses.map(warehouse => ({
-          id: warehouse.post_id.toString(),
+          id: warehouse._id.toString(),
           image: warehouse.post_image,
           title: warehouse.post_title,
           subtitle: warehouse.address, // Using address as subtitle
@@ -730,7 +730,7 @@ app.get('/api/home-feed', async (req, res) => {
         buttonLink: 'https://example.com/all-halls',
         buttonColor: '#ffffff',
         properties: halls.map(hall => ({
-          id: hall.post_id.toString(),
+          id: hall._id.toString(),
           image: hall.post_image,
           title: hall.post_title,
           subtitle: hall.address, // Using address as subtitle
@@ -1022,6 +1022,7 @@ app.get('/api/buildings/:buildingId', async (req, res) => {
     res.status(500).json({ error: 'Error fetching building details' });
   }
 })
+
 
 //9241700000
 

@@ -1023,6 +1023,7 @@ app.get('/api/buildings/:buildingId', async (req, res) => {
   }
 })
 
+
 //9241700000
 
 
