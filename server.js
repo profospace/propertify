@@ -748,6 +748,88 @@ app.get('/api/home-feed', async (req, res) => {
   }
 });
 
+
+// Modify your existing enhanced home feed endpoint to include carousels
+app.get('/api/enhanced-home-feed', async (req, res) => {
+  try {
+      const { userId, latitude, longitude } = req.query;
+
+      if (!latitude || !longitude) {
+          return res.status(400).json({ message: 'Latitude and longitude are required' });
+      }
+
+      // Get active carousels
+      const carousels = await Carousel.find({ status: 'active' })
+          .populate('items.propertyId')
+          .populate('items.locationId');
+
+      // Rest of your existing home feed logic...
+      
+      // Add carousels to the home feed sections
+      const carouselSections = carousels.map(carousel => ({
+          sectionId: carousel.carouselId,
+          sectionType: 'carousel',
+          title: carousel.name,
+          carouselData: {
+              carouselId: carousel.carouselId,
+              autoPlay: carousel.autoPlay,
+              autoPlayInterval: carousel.autoPlayInterval,
+              showIndicator: carousel.showIndicator,
+              items: carousel.items.map(item => {
+                  switch (item.type) {
+                      case 'banner':
+                          return {
+                              type: 'banner',
+                              id: item._id.toString(),
+                              imageUrl: item.imageUrl,
+                              title: item.title,
+                              subtitle: item.subtitle,
+                              actionUrl: item.actionUrl,
+                              backgroundColor: item.backgroundColor
+                          };
+                      case 'property':
+                          return {
+                              type: 'property',
+                              id: item._id.toString(),
+                              property: item.propertyId ? {
+                                  propertyId: item.propertyId._id.toString(),
+                                  image: item.propertyId.post_image,
+                                  title: item.propertyId.post_title,
+                                  price: item.propertyId.price.toString(),
+                                  location: item.propertyId.location
+                              } : null
+                          };
+                      case 'location':
+                          return {
+                              type: 'location',
+                              id: item._id.toString(),
+                              location: item.locationId ? {
+                                  locationId: item.locationId._id.toString(),
+                                  name: item.locationId.name,
+                                  image: item.locationId.images[0],
+                                  statistics: item.locationId.statistics
+                              } : null
+                          };
+                  }
+              }).filter(item => item !== null)
+          }
+      }));
+
+      // Insert carousels at appropriate positions in your home feed
+      const homeFeed = [
+          // Your existing sections...
+          ...carouselSections
+      ];
+
+      res.json(homeFeed);
+  } catch (error) {
+      console.error('Error fetching enhanced home feed:', error);
+      res.status(500).json({ message: 'Error fetching home feed data' });
+  }
+});
+
+
+
 function generatePostId() {
   const maxDigits = 13;
   const maxNumber = Math.pow(10, maxDigits) - 1; // Maximum 13-digit number
@@ -1002,6 +1084,18 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
     res.json({ message: "Option updated successfully", updatedOption });
   } catch (error) {
     res.status(500).json({ message: "Error updating option", error: error.message });
+  }
+});
+
+
+// GET /api/list-options
+app.get('/api/list-options', async (req, res) => {
+  try {
+    const options = await ListOptions.find({});
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching list options:', error);
+    res.status(500).json({ message: 'Error fetching list options', error: error.message });
   }
 });
 
@@ -1599,6 +1693,358 @@ app.get('/api/update_gallery_list_in_db', async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+// Create new carousel
+app.post('/api/carousels', async (req, res) => {
+  try {
+      const carousel = new Carousel(req.body);
+      await carousel.save();
+      res.status(201).json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      if (error.code === 11000) { // Duplicate carouselId
+          res.status(400).json({
+              status: 'error',
+              message: 'Carousel ID already exists'
+          });
+      } else {
+          res.status(500).json({
+              status: 'error',
+              message: error.message
+          });
+      }
+  }
+});
+
+// Get all carousels
+app.get('/api/carousels', async (req, res) => {
+  try {
+      const { status, type } = req.query;
+      const filter = {};
+      
+      if (status) filter.status = status;
+      if (type) filter.type = type;
+
+      const carousels = await Carousel.find(filter)
+          .populate('items.propertyId', 'post_title post_image price address')
+          .sort('-updatedAt');
+
+      res.json({
+          status: 'success',
+          data: carousels
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Get single carousel
+app.get('/api/carousels/:id', async (req, res) => {
+  try {
+      const carousel = await Carousel.findOne({
+          $or: [
+              { _id: req.params.id },
+              { carouselId: req.params.id }
+          ]
+      }).populate('items.propertyId');
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Update carousel
+app.put('/api/carousels/:id', async (req, res) => {
+  try {
+      const carousel = await Carousel.findOneAndUpdate(
+          {
+              $or: [
+                  { _id: req.params.id },
+                  { carouselId: req.params.id }
+              ]
+          },
+          req.body,
+          { new: true, runValidators: true }
+      );
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Delete carousel
+app.delete('/api/carousels/:id', async (req, res) => {
+  try {
+      const carousel = await Carousel.findOneAndDelete({
+          $or: [
+              { _id: req.params.id },
+              { carouselId: req.params.id }
+          ]
+      });
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          message: 'Carousel deleted successfully'
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Add item to carousel
+app.post('/api/carousels/:id/items', async (req, res) => {
+  try {
+      const carousel = await Carousel.findOne({
+          $or: [
+              { _id: req.params.id },
+              { carouselId: req.params.id }
+          ]
+      });
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      carousel.items.push({
+          ...req.body,
+          order: carousel.items.length
+      });
+
+      await carousel.save();
+
+      res.status(201).json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Delete item from carousel
+app.delete('/api/carousels/:carouselId/items/:itemId', async (req, res) => {
+  try {
+      const carousel = await Carousel.findOne({
+          $or: [
+              { _id: req.params.carouselId },
+              { carouselId: req.params.carouselId }
+          ]
+      });
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      const itemIndex = carousel.items.findIndex(
+          item => item._id.toString() === req.params.itemId
+      );
+
+      if (itemIndex === -1) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Item not found'
+          });
+      }
+
+      carousel.items.splice(itemIndex, 1);
+      await carousel.save();
+
+      res.json({
+          status: 'success',
+          message: 'Item deleted successfully'
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Reorder carousel items
+app.put('/api/carousels/:id/reorder', async (req, res) => {
+  try {
+      const { itemIds } = req.body;
+      const carousel = await Carousel.findOne({
+          $or: [
+              { _id: req.params.id },
+              { carouselId: req.params.id }
+          ]
+      });
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      // Update the order of items
+      itemIds.forEach((itemId, index) => {
+          const item = carousel.items.id(itemId);
+          if (item) {
+              item.order = index;
+          }
+      });
+
+      await carousel.save();
+
+      res.json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Update carousel status
+app.patch('/api/carousels/:id/status', async (req, res) => {
+  try {
+      const { status } = req.body;
+      const carousel = await Carousel.findOneAndUpdate(
+          {
+              $or: [
+                  { _id: req.params.id },
+                  { carouselId: req.params.id }
+              ]
+          },
+          { status },
+          { new: true }
+      );
+
+      if (!carousel) {
+          return res.status(404).json({
+              status: 'error',
+              message: 'Carousel not found'
+          });
+      }
+
+      res.json({
+          status: 'success',
+          data: carousel
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Bulk update carousels
+app.post('/api/carousels/bulk-update', async (req, res) => {
+  try {
+      const { carousels } = req.body;
+      
+      const operations = carousels.map(carousel => ({
+          updateOne: {
+              filter: { carouselId: carousel.carouselId },
+              update: carousel,
+              upsert: true
+          }
+      }));
+
+      const result = await Carousel.bulkWrite(operations);
+
+      res.json({
+          status: 'success',
+          data: result
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+// Bulk delete carousels
+app.post('/api/carousels/bulk-delete', async (req, res) => {
+  try {
+      const { carouselIds } = req.body;
+      
+      const result = await Carousel.deleteMany({
+          carouselId: { $in: carouselIds }
+      });
+
+      res.json({
+          status: 'success',
+          data: {
+              deleted: result.deletedCount
+          }
+      });
+  } catch (error) {
+      res.status(500).json({
+          status: 'error',
+          message: error.message
+      });
+  }
+});
+
+
+
+
+
+
+
+
+
 
 
 // Initialize the server
