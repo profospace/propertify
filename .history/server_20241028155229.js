@@ -1394,10 +1394,10 @@ app.get('/api/properties/filter', async (req, res) => {
 
     // Apply 'buy' purpose filter only if EMI parameters are present
     if (emiAmount && loanTenureYears) {
-      filter.purpose = new RegExp('^buy$', 'i'); // Case-insensitive match for 'buy'
+      filter.purpose = 'buy';
     } else if (purpose) {
       // If EMI parameters are not present, use the purpose provided in the query (if any)
-      filter.purpose = new RegExp(`^${purpose}$`, 'i'); // Case-insensitive match for provided purpose
+      filter.purpose = purpose;
     }
     
     // Existing filter logic
