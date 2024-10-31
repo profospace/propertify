@@ -23,6 +23,18 @@ const propertySchema = new mongoose.Schema({
   purpose: String,
   bedrooms: Number,
   bathrooms: Number,
+  builder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Builder'
+},
+building: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Building'
+},
+project: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project'
+},
   location: {
     type: { type: String, enum: ['Point'], required: false },
     coordinates: { type: [Number], required: false } // Format: [longitude, latitude]
@@ -52,7 +64,43 @@ const propertySchema = new mongoose.Schema({
   facilities: [String],
   location_advantage: [String],
   project_details: String,
-  official_brochure: String
+  official_brochure: String,
+  // Fields based on the images
+  pricePerSqFt: Number,
+  estimatedEMI: Number,
+  reraStatus: String,
+  reraRegistrationNumber: String,
+  reraWebsite: String,
+  configuration: String,
+  facing: String,
+  floorNumber: Number,
+  totalFloors: Number,
+  overlookingAmenities: [String],
+  possessionDate: Date,
+  transactionType: String,
+  propertyOwnership: String,
+  flooring: String,
+  parking: String,
+  propertyCode: String,
+  widthOfFacingRoad: Number,
+  gatedCommunity: Boolean,
+  waterSource: [String],
+  powerBackup: String,
+  petFriendly: Boolean,
+
+  // New fields based on additional lists (as string arrays)
+  propertyTypes: [String],
+  propertyFeatures: [String],
+  viewTypes: [String],
+  propertyConditions: [String],
+  legalStatuses: [String],
+  constructionStatuses: [String],
+  ownershipTypes: [String],
+  financingOptions: [String],
+  propertyTaxClasses: [String],
+  environmentalCertifications: [String],
+  propertyManagementServices: [String],
+  investmentStrategies: [String]
 }, { timestamps: true });
 
 propertySchema.index({ location: '2dsphere' });
