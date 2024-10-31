@@ -23,6 +23,18 @@ const propertySchema = new mongoose.Schema({
   purpose: String,
   bedrooms: Number,
   bathrooms: Number,
+  builder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Builder'
+},
+building: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Building'
+},
+project: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Project'
+},
   location: {
     type: { type: String, enum: ['Point'], required: false },
     coordinates: { type: [Number], required: false } // Format: [longitude, latitude]

@@ -2223,6 +2223,439 @@ app.post('/api/carousels/bulk-delete', async (req, res) => {
 });
 
 
+app.get('/api/buildings/:buildingId', async (req, res) => {
+  try {
+      const building = await Building.findOne({ buildingId: req.params.buildingId })
+          .populate('builder', 'name logo experience ratings')
+          .populate('project', 'name type status')
+          .populate({
+              path: 'properties',
+              select: 'post_title price type_name status',
+              options: { limit: 5 }
+          });
+      
+      if (!building) {
+          return res.status(404).json({ error: 'Building not found' });
+      }
+      
+      res.status(200).json(building);
+  } catch (error) {
+      console.error('Error fetching building details:', error);
+      res.status(500).json({ error: 'Error fetching building details' });
+  }
+});
+
+// Create new building with builder reference
+app.post('/api/buildings/saveBuildingDetails', upload.fields([
+  { name: 'galleryList', maxCount: 5 }
+]), async (req, res) => {
+  try {
+      const buildingData = JSON.parse(req.body.data || '{}');
+      
+      // Verify builder exists
+      const builder = await Builder.findById(buildingData.builderId);
+      if (!builder) {
+          return res.status(404).json({ error: 'Builder not found' });
+      }
+      
+      // Handle image uploads...
+      const uploadedImages = [];
+      if (req.files['galleryList']) {
+          // Your existing image upload logic...
+      }
+      
+      buildingData.galleryList = uploadedImages;
+      buildingData.builder = buildingData.builderId;
+      
+      const newBuilding = new Building(buildingData);
+      await newBuilding.save();
+      
+      // Add building to builder's buildings array
+      builder.buildings.push(newBuilding._id);
+      await builder.save();
+      
+      res.status(201).json(newBuilding);
+  } catch (error) {
+      console.error('Error saving building details:', error);
+      res.status(500).json({ error: 'Error saving building details' });
+  }
+});
+
+
+
+app.get('/builders/:id/buildings', async (req, res) => {
+  try {
+      const buildings = await Building.find({ builder: req.params.id })
+          .populate('project', 'name type')
+          .select('name type availableFlats storey location')
+          .lean();
+      
+      res.json(buildings);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all properties by builder
+app.get('/builders/:id/properties', async (req, res) => {
+  try {
+      const { type, status, priceRange } = req.query;
+      const filter = { builder: req.params.id };
+      
+      if (type) filter.type_name = type;
+      if (status) filter.status = status;
+      if (priceRange) {
+          const [min, max] = priceRange.split('-');
+          filter.price = { $gte: parseInt(min), $lte: parseInt(max) };
+      }
+      
+      const properties = await Property.find(filter)
+          .populate('building', 'name')
+          .populate('project', 'name')
+          .select('post_title price type_name status location')
+          .lean();
+      
+      res.json(properties);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Add building to builder
+app.post('/builders/:id/buildings', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id);
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      const building = new Building({
+          ...req.body,
+          builder: req.params.id,
+          buildingId: `BLD${Date.now()}`
+      });
+      
+      await building.save();
+      
+      // Update builder's buildings array
+      builder.buildings.push(building._id);
+      await builder.save();
+      
+      res.status(201).json(building);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
+
+// Add property to builder
+app.post('/builders/:id/properties', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id);
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      const property = new Property({
+          ...req.body,
+          builder: req.params.id,
+          post_id: `PROP${Date.now()}`
+      });
+      
+      await property.save();
+      
+      // Update builder's properties array
+      builder.properties.push(property._id);
+      await builder.save();
+      
+      res.status(201).json(property);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
+
+// Get builder's portfolio summary
+app.get('/builders/:id/portfolio', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id);
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      const [buildings, properties, projects] = await Promise.all([
+          Building.find({ builder: req.params.id }).select('type availableFlats'),
+          Property.find({ builder: req.params.id }).select('type_name price status'),
+          Project.find({ builder: req.params.id }).select('type status overview')
+      ]);
+      
+      const portfolio = {
+          summary: {
+              totalProjects: projects.length,
+              totalBuildings: buildings.length,
+              totalProperties: properties.length
+          },
+          buildings: {
+              residential: buildings.filter(b => b.type === 'residential').length,
+              commercial: buildings.filter(b => b.type === 'commercial').length,
+              mixed: buildings.filter(b => b.type === 'mixed').length,
+              totalAvailableFlats: buildings.reduce((sum, b) => sum + parseInt(b.availableFlats || 0), 0)
+          },
+          properties: {
+              byType: properties.reduce((acc, p) => {
+                  acc[p.type_name] = (acc[p.type_name] || 0) + 1;
+                  return acc;
+              }, {}),
+              byStatus: properties.reduce((acc, p) => {
+                  acc[p.status] = (acc[p.status] || 0) + 1;
+                  return acc;
+              }, {}),
+              averagePrice: properties.reduce((sum, p) => sum + p.price, 0) / properties.length
+          },
+          projects: {
+              ongoing: projects.filter(p => p.status === 'Ongoing').length,
+              completed: projects.filter(p => p.status === 'Completed').length,
+              upcoming: projects.filter(p => p.status === 'Upcoming').length
+          }
+      };
+      
+      res.json(portfolio);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Update building's builder
+app.put('/buildings/:buildingId/builder', async (req, res) => {
+  try {
+      const { newBuilderId } = req.body;
+      
+      // Verify new builder exists
+      const newBuilder = await Builder.findById(newBuilderId);
+      if (!newBuilder) {
+          return res.status(404).json({ message: 'New builder not found' });
+      }
+      
+      const building = await Building.findById(req.params.buildingId);
+      if (!building) {
+          return res.status(404).json({ message: 'Building not found' });
+      }
+      
+      // Remove building from old builder's list
+      await Builder.findByIdAndUpdate(building.builder, {
+          $pull: { buildings: building._id }
+      });
+      
+      // Add building to new builder's list
+      await Builder.findByIdAndUpdate(newBuilderId, {
+          $push: { buildings: building._id }
+      });
+      
+      // Update building's builder reference
+      building.builder = newBuilderId;
+      await building.save();
+      
+      res.json({ message: 'Building transferred successfully' });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Get all builders
+app.get('/builders', async (req, res) => {
+  try {
+      const builders = await Builder.find()
+          .select('name logo experience stats ratings')
+          .lean();
+      res.json(builders);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Get builder details by ID
+app.get('/builders/:id', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id)
+          .populate({
+              path: 'projects',
+              select: 'name type status overview.totalUnits overview.priceRange'
+          });
+      
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      res.json(builder);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new builder
+app.post('/builders', async (req, res) => {
+  try {
+      const builder = new Builder(req.body);
+      await builder.save();
+      res.status(201).json(builder);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
+
+// Update builder
+app.put('/builders/:id', async (req, res) => {
+  try {
+      const builder = await Builder.findByIdAndUpdate(
+          req.params.id,
+          { ...req.body, updatedAt: Date.now() },
+          { new: true, runValidators: true }
+      );
+      
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      res.json(builder);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
+
+// Delete builder
+app.delete('/builders/:id', async (req, res) => {
+  try {
+      const builder = await Builder.findByIdAndDelete(req.params.id);
+      
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      // Delete associated projects
+      await Project.deleteMany({ builder: req.params.id });
+      
+      res.json({ message: 'Builder deleted successfully' });
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Get projects by builder ID
+app.get('/builders/:id/projects', async (req, res) => {
+  try {
+      const { status, type } = req.query;
+      const filter = { builder: req.params.id };
+      
+      if (status) filter.status = status;
+      if (type) filter.type = type;
+      
+      const projects = await Project.find(filter)
+          .select('name type status overview location')
+          .lean();
+      
+      res.json(projects);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Add new project to builder
+app.post('/builders/:id/projects', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id);
+      
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      const project = new Project({
+          ...req.body,
+          builder: req.params.id
+      });
+      
+      await project.save();
+      
+      // Update builder stats
+      builder.stats.totalProjects += 1;
+      if (project.status === 'Completed') {
+          builder.stats.completedProjects += 1;
+      }
+      builder.projects.push(project._id);
+      await builder.save();
+      
+      res.status(201).json(project);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
+
+// Search builders by location
+app.get('/builders/search/location', async (req, res) => {
+  try {
+      const { lat, lng, radius = 10000 } = req.query; // radius in meters
+      
+      const builders = await Builder.find({
+          'contact.address.location': {
+              $near: {
+                  $geometry: {
+                      type: 'Point',
+                      coordinates: [parseFloat(lng), parseFloat(lat)]
+                  },
+                  $maxDistance: parseInt(radius)
+              }
+          }
+      })
+      .select('name logo stats location')
+      .lean();
+      
+      res.json(builders);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+// Get builder analytics
+app.get('/builders/:id/analytics', async (req, res) => {
+  try {
+      const builder = await Builder.findById(req.params.id);
+      
+      if (!builder) {
+          return res.status(404).json({ message: 'Builder not found' });
+      }
+      
+      const projects = await Project.find({ builder: req.params.id });
+      
+      const analytics = {
+          totalProjects: projects.length,
+          projectsByStatus: {
+              upcoming: projects.filter(p => p.status === 'Upcoming').length,
+              ongoing: projects.filter(p => p.status === 'Ongoing').length,
+              completed: projects.filter(p => p.status === 'Completed').length
+          },
+          projectsByType: {
+              residential: projects.filter(p => p.type === 'Residential').length,
+              commercial: projects.filter(p => p.type === 'Commercial').length,
+              mixed: projects.filter(p => p.type === 'Mixed').length
+          },
+          ratings: builder.ratings,
+          totalUnits: projects.reduce((sum, p) => sum + (p.overview.totalUnits || 0), 0)
+      };
+      
+      res.json(analytics);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
 // Initialize the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
