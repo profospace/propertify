@@ -605,7 +605,148 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
   }
 });
 
+app.get('/api/home-feed', async (req, res) => {
+  try {
+    const { latitude, longitude } = req.query;
 
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const userLocation = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+    };
+
+    const maxDistance = 10000; // 10 km radius, adjust as needed
+
+    // Function to fetch nearby properties of a specific type
+    const getNearbyProperties = async (typeName, limit = 5) => {
+      return await Property.find({
+        type_name: typeName,
+        location: {
+          $near: {
+            $geometry: userLocation,
+            $maxDistance: maxDistance
+          }
+        }
+      })
+      .limit(limit)
+      .lean();
+    };
+
+    const shops = await getNearbyProperties('Shops');
+    const apartments = await getNearbyProperties('Apartment');
+    const warehouses = await getNearbyProperties('Warehouses');
+    const halls = await getNearbyProperties('Halls');
+
+    // Fetch all ListOptions
+    const allListOptions = await ListOptions.find().lean();
+
+    const homeFeed = [
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/shops-banner.jpg',
+        title: 'Shops near you',
+        subtitle: 'Discover local stores in your area',
+        backgroundColor: '#ffffff',
+        buttonText: 'View All Shops',
+        buttonLink: 'https://example.com/all-shops',
+        buttonColor: '#ede8fe',
+        properties: shops.map(shop => ({
+          id: shop.post_id.toString(),
+          image: shop.post_image,
+          title: shop.post_title,
+          subtitle: shop.address, // Using address as subtitle
+          price: `₹${shop.price}`,
+          rating: '4.3',
+          location: shop.address,
+          deliveryTime: '20-25 mins',
+          tags: shop.amenities?.slice(0, 3) || [],
+          area: `${shop.area}`
+        }))
+      },
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/apartments-banner.jpg',
+        title: 'Apartments available',
+        subtitle: 'Find your perfect home',
+        backgroundColor: '#ffffff',
+        buttonText: 'Explore Apartments',
+        buttonLink: 'https://example.com/all-apartments',
+        buttonColor: '#32CD32',
+        properties: apartments.map(apartment => ({
+          id: apartment.post_id.toString(),
+          image: apartment.post_image,
+          title: apartment.post_title,
+          subtitle: apartment.address, // Using address as subtitle
+          price: `₹${apartment.price}`,
+          location: apartment.address,
+          area: `${apartment.area}`
+        }))
+      },
+      // Include all ListOptions as separate sections
+      ...allListOptions.map(listOption => ({
+        sectionType: 'optionList',
+        headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
+        title: listOption.listName,
+        subtitle: `Browse ${listOption.listName}`,
+        backgroundColor: '#ffffff', // You might want to customize this per list
+        buttonText: `See All ${listOption.listName}`,
+        buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
+        buttonColor: '#ffffff', // You might want to customize this per list
+        options: listOption.options.map(option => ({
+          imagelink: option.imagelink,
+          textview: option.textview,
+          link: option.link
+        }))
+      })),
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/warehouses-banner.jpg',
+        title: 'Warehouses for rent',
+        subtitle: 'Secure storage solutions',
+        backgroundColor: '#ffffff',
+        buttonText: 'Find Warehouses',
+        buttonLink: 'https://example.com/all-warehouses',
+        buttonColor: '#e8fee5',
+        properties: warehouses.map(warehouse => ({
+          id: warehouse.post_id.toString(),
+          image: warehouse.post_image,
+          title: warehouse.post_title,
+          subtitle: warehouse.address, // Using address as subtitle
+          price: `₹${warehouse.price}`,
+          location: warehouse.address,
+          area: `${warehouse.area}`
+        }))
+      },
+      {
+        sectionType: 'propertyList',
+        headerImage: 'https://example.com/halls-banner.jpg',
+        title: 'Halls for events',
+        subtitle: 'Perfect venues for your occasions',
+        backgroundColor: '#ffffff',
+        buttonText: 'Explore Halls',
+        buttonLink: 'https://example.com/all-halls',
+        buttonColor: '#ffffff',
+        properties: halls.map(hall => ({
+          id: hall.post_id.toString(),
+          image: hall.post_image,
+          title: hall.post_title,
+          subtitle: hall.address, // Using address as subtitle
+          price: `₹${hall.price}`,
+          location: hall.address,
+          area: `${hall.area}`
+        }))
+      }
+    ];
+
+    res.json(homeFeed);
+  } catch (error) {
+    console.error('Error fetching home feed:', error);
+    res.status(500).json({ message: 'Error fetching home feed' });
+  }
+});
 
 
 // Modify your existing enhanced home feed endpoint to include carousels
@@ -756,6 +897,137 @@ app.get('/api/properties/user/:userId', async (req, res) => {
 });
 
 
+// Add this endpoint to your existing Express app
+
+const kanpurLocations = [
+  // Arya Nagar locations
+  { lat: 26.4547, lng: 80.3359, locality: 'Arya Nagar' },
+  { lat: 26.4552, lng: 80.3362, locality: 'Arya Nagar' },
+  { lat: 26.4542, lng: 80.3355, locality: 'Arya Nagar' },
+  { lat: 26.4549, lng: 80.3365, locality: 'Arya Nagar' },
+  { lat: 26.4545, lng: 80.3357, locality: 'Arya Nagar' },
+  
+  // Kakadeo locations
+  { lat: 26.4655, lng: 80.3579, locality: 'Kakadeo' },
+  { lat: 26.4659, lng: 80.3575, locality: 'Kakadeo' },
+  { lat: 26.4652, lng: 80.3582, locality: 'Kakadeo' },
+  { lat: 26.4657, lng: 80.3577, locality: 'Kakadeo' },
+  { lat: 26.4654, lng: 80.3580, locality: 'Kakadeo' },
+
+  // Civil Lines locations
+  { lat: 26.4499, lng: 80.3319, locality: 'Civil Lines' },
+  { lat: 26.4495, lng: 80.3315, locality: 'Civil Lines' },
+  { lat: 26.4502, lng: 80.3322, locality: 'Civil Lines' },
+  { lat: 26.4497, lng: 80.3317, locality: 'Civil Lines' },
+  { lat: 26.4500, lng: 80.3320, locality: 'Civil Lines' },
+
+  // Swaroop Nagar locations
+  { lat: 26.4711, lng: 80.3497, locality: 'Swaroop Nagar' },
+  { lat: 26.4715, lng: 80.3499, locality: 'Swaroop Nagar' },
+  { lat: 26.4708, lng: 80.3495, locality: 'Swaroop Nagar' },
+  { lat: 26.4713, lng: 80.3498, locality: 'Swaroop Nagar' },
+  { lat: 26.4710, lng: 80.3496, locality: 'Swaroop Nagar' },
+
+  // Tilak Nagar locations
+  { lat: 26.4834, lng: 80.3119, locality: 'Tilak Nagar' },
+  { lat: 26.4837, lng: 80.3122, locality: 'Tilak Nagar' },
+  { lat: 26.4831, lng: 80.3117, locality: 'Tilak Nagar' },
+  { lat: 26.4835, lng: 80.3120, locality: 'Tilak Nagar' },
+  { lat: 26.4833, lng: 80.3118, locality: 'Tilak Nagar' }
+];
+
+const propertyImages = [
+  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109159093-Screenshot%202024-10-28%20at%203.12.10%20PM.png',
+  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109203974-Screenshot%202024-10-28%20at%203.11.59%20PM.png',
+  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109218140-Screenshot%202024-10-28%20at%203.11.50%20PM.png'
+];
+
+const propertyTypes = ['Apartment', 'House', 'Villa', 'Commercial'];
+const amenities = ['Parking', 'Lift', '24x7 Security', 'Power Backup', 'Garden', 'Gym', 'Swimming Pool'];
+const furnishingOptions = ['Fully Furnished', 'Semi Furnished', 'Unfurnished'];
+
+app.post('/api/populate-kanpur-properties', async (req, res) => {
+  try {
+    const properties = [];
+    const numberOfProperties = Math.max(30, req.body.count || 30); // Ensure minimum 30 properties
+
+    for (let i = 0; i < numberOfProperties; i++) {
+      const locationIndex = i % kanpurLocations.length;
+      const location = kanpurLocations[locationIndex];
+      
+      // Generate a random price between 55 lakhs and 3 crores (in rupees)
+      const price = Math.floor(Math.random() * (30000000 - 5500000 + 1)) + 5500000;
+      
+      // Generate random area between 1000-3000 sq ft
+      const area = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
+      
+      // Calculate a realistic price per square foot
+      const pricePerSqFt = Math.floor(price / area);
+
+      // Generate random number of bedrooms (2-4)
+      const bedrooms = Math.floor(Math.random() * 3) + 2;
+      
+      // Generate random number of bathrooms (bedrooms - 1 or equal to bedrooms)
+      const bathrooms = bedrooms - Math.floor(Math.random() * 2);
+
+      const property = {
+        post_id: `KNP${Date.now().toString()}${i}`,
+        type_name: propertyTypes[Math.floor(Math.random() * propertyTypes.length)],
+        post_title: `${bedrooms} BHK ${propertyTypes[Math.floor(Math.random() * propertyTypes.length)]} for Sale in ${location.locality}`,
+        post_description: `Spacious ${bedrooms} BHK property in prime location of ${location.locality}, Kanpur. Features modern amenities and excellent connectivity.`,
+        address: `${location.locality}, Kanpur, Uttar Pradesh`,
+        latitude: location.lat,
+        longitude: location.lng,
+        location: {
+          type: 'Point',
+          coordinates: [location.lng, location.lat]
+        },
+        price: price,
+        pricePerSqFt: pricePerSqFt,
+        area: area.toString(),
+        bedrooms: bedrooms,
+        bathrooms: bathrooms,
+        furnishing: furnishingOptions[Math.floor(Math.random() * furnishingOptions.length)],
+        amenities: amenities.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 5) + 2),
+        post_image: propertyImages[0],
+        galleryList: propertyImages,
+        verified: true,
+        available: true,
+        total_views: Math.floor(Math.random() * 1000),
+        purpose: 'Buy',
+        construction_status: Math.random() > 0.3 ? 'Ready to Move' : 'Under Construction',
+        possession: 'Immediate',
+        carpetArea: Math.floor(area * 0.75), // Carpet area is typically 75-80% of total area
+        superBuiltupArea: area,
+        broker_status: Math.random() > 0.5 ? 'Broker' : 'Owner',
+        estimatedEMI: Math.floor((price * 0.007)), // Rough monthly EMI estimation
+        transactionType: 'New Property'
+      };
+
+      properties.push(property);
+    }
+
+    // Insert all properties into the database
+    await Property.insertMany(properties);
+
+    res.status(201).json({
+      message: `Successfully created ${properties.length} properties in Kanpur`,
+      propertiesByLocation: properties.reduce((acc, prop) => {
+        const locality = kanpurLocations.find(loc => loc.lat === prop.latitude)?.locality;
+        acc[locality] = (acc[locality] || 0) + 1;
+        return acc;
+      }, {}),
+      totalCount: properties.length
+    });
+
+  } catch (error) {
+    console.error('Error populating properties:', error);
+    res.status(500).json({
+      message: 'Error populating properties',
+      error: error.message
+    });
+  }
+});
 
 
 
@@ -2504,282 +2776,6 @@ app.get('/api/projects/nearby', async (req, res) => {
 });
 
 
-app.get('/api/home-feed', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.query;
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
-
-    const userLocation = {
-      type: 'Point',
-      coordinates: [parseFloat(longitude), parseFloat(latitude)]
-    };
-
-    const maxDistance = 10000; // 10 km radius, adjust as needed
-
-    // Function to fetch nearby properties of a specific type
-    const getNearbyProperties = async (typeName, limit = 5) => {
-      return await Property.find({
-        type_name: typeName,
-        location: {
-          $near: {
-            $geometry: userLocation,
-            $maxDistance: maxDistance
-          }
-        }
-      })
-      .limit(limit)
-      .lean();
-    };
-
-    const shops = await getNearbyProperties('Shops');
-    const apartments = await getNearbyProperties('Apartment');
-    const warehouses = await getNearbyProperties('Warehouses');
-    const halls = await getNearbyProperties('Halls');
-
-    // Fetch all ListOptions
-    const allListOptions = await ListOptions.find().lean();
-
-    const homeFeed = [
-      {
-        sectionType: 'propertyList',
-        headerImage: 'https://example.com/shops-banner.jpg',
-        title: 'Shops near you',
-        subtitle: 'Discover local stores in your area',
-        backgroundColor: '#ffffff',
-        buttonText: 'View All Shops',
-        buttonLink: 'https://example.com/all-shops',
-        buttonColor: '#ede8fe',
-        properties: shops.map(shop => ({
-          id: shop.post_id.toString(),
-          image: shop.post_image,
-          title: shop.post_title,
-          subtitle: shop.address, // Using address as subtitle
-          price: `₹${shop.price}`,
-          rating: '4.3',
-          location: shop.address,
-          deliveryTime: '20-25 mins',
-          tags: shop.amenities?.slice(0, 3) || [],
-          area: `${shop.area}`
-        }))
-      },
-      {
-        sectionType: 'propertyList',
-        headerImage: 'https://example.com/apartments-banner.jpg',
-        title: 'Apartments available',
-        subtitle: 'Find your perfect home',
-        backgroundColor: '#ffffff',
-        buttonText: 'Explore Apartments',
-        buttonLink: 'https://example.com/all-apartments',
-        buttonColor: '#32CD32',
-        properties: apartments.map(apartment => ({
-          id: apartment.post_id.toString(),
-          image: apartment.post_image,
-          title: apartment.post_title,
-          subtitle: apartment.address, // Using address as subtitle
-          price: `₹${apartment.price}`,
-          location: apartment.address,
-          area: `${apartment.area}`
-        }))
-      },
-      // Include all ListOptions as separate sections
-      ...allListOptions.map(listOption => ({
-        sectionType: 'optionList',
-        headerImage: 'https://example.com/list-banner.jpg', // You might want to add a default image or customize per list
-        title: listOption.listName,
-        subtitle: `Browse ${listOption.listName}`,
-        backgroundColor: '#ffffff', // You might want to customize this per list
-        buttonText: `See All ${listOption.listName}`,
-        buttonLink: `https://example.com/all-${listOption.listName.toLowerCase()}`,
-        buttonColor: '#ffffff', // You might want to customize this per list
-        options: listOption.options.map(option => ({
-          imagelink: option.imagelink,
-          textview: option.textview,
-          link: option.link
-        }))
-      })),
-      {
-        sectionType: 'propertyList',
-        headerImage: 'https://example.com/warehouses-banner.jpg',
-        title: 'Warehouses for rent',
-        subtitle: 'Secure storage solutions',
-        backgroundColor: '#ffffff',
-        buttonText: 'Find Warehouses',
-        buttonLink: 'https://example.com/all-warehouses',
-        buttonColor: '#e8fee5',
-        properties: warehouses.map(warehouse => ({
-          id: warehouse.post_id.toString(),
-          image: warehouse.post_image,
-          title: warehouse.post_title,
-          subtitle: warehouse.address, // Using address as subtitle
-          price: `₹${warehouse.price}`,
-          location: warehouse.address,
-          area: `${warehouse.area}`
-        }))
-      },
-      {
-        sectionType: 'propertyList',
-        headerImage: 'https://example.com/halls-banner.jpg',
-        title: 'Halls for events',
-        subtitle: 'Perfect venues for your occasions',
-        backgroundColor: '#ffffff',
-        buttonText: 'Explore Halls',
-        buttonLink: 'https://example.com/all-halls',
-        buttonColor: '#ffffff',
-        properties: halls.map(hall => ({
-          id: hall.post_id.toString(),
-          image: hall.post_image,
-          title: hall.post_title,
-          subtitle: hall.address, // Using address as subtitle
-          price: `₹${hall.price}`,
-          location: hall.address,
-          area: `${hall.area}`
-        }))
-      }
-    ];
-
-    res.json(homeFeed);
-  } catch (error) {
-    console.error('Error fetching home feed:', error);
-    res.status(500).json({ message: 'Error fetching home feed' });
-  }
-});
-
-
-
-// Add this endpoint to your existing Express app
-
-const kanpurLocations = [
-  // Arya Nagar locations
-  { lat: 26.4547, lng: 80.3359, locality: 'Arya Nagar' },
-  { lat: 26.4552, lng: 80.3362, locality: 'Arya Nagar' },
-  { lat: 26.4542, lng: 80.3355, locality: 'Arya Nagar' },
-  { lat: 26.4549, lng: 80.3365, locality: 'Arya Nagar' },
-  { lat: 26.4545, lng: 80.3357, locality: 'Arya Nagar' },
-  
-  // Kakadeo locations
-  { lat: 26.4655, lng: 80.3579, locality: 'Kakadeo' },
-  { lat: 26.4659, lng: 80.3575, locality: 'Kakadeo' },
-  { lat: 26.4652, lng: 80.3582, locality: 'Kakadeo' },
-  { lat: 26.4657, lng: 80.3577, locality: 'Kakadeo' },
-  { lat: 26.4654, lng: 80.3580, locality: 'Kakadeo' },
-
-  // Civil Lines locations
-  { lat: 26.4499, lng: 80.3319, locality: 'Civil Lines' },
-  { lat: 26.4495, lng: 80.3315, locality: 'Civil Lines' },
-  { lat: 26.4502, lng: 80.3322, locality: 'Civil Lines' },
-  { lat: 26.4497, lng: 80.3317, locality: 'Civil Lines' },
-  { lat: 26.4500, lng: 80.3320, locality: 'Civil Lines' },
-
-  // Swaroop Nagar locations
-  { lat: 26.4711, lng: 80.3497, locality: 'Swaroop Nagar' },
-  { lat: 26.4715, lng: 80.3499, locality: 'Swaroop Nagar' },
-  { lat: 26.4708, lng: 80.3495, locality: 'Swaroop Nagar' },
-  { lat: 26.4713, lng: 80.3498, locality: 'Swaroop Nagar' },
-  { lat: 26.4710, lng: 80.3496, locality: 'Swaroop Nagar' },
-
-  // Tilak Nagar locations
-  { lat: 26.4834, lng: 80.3119, locality: 'Tilak Nagar' },
-  { lat: 26.4837, lng: 80.3122, locality: 'Tilak Nagar' },
-  { lat: 26.4831, lng: 80.3117, locality: 'Tilak Nagar' },
-  { lat: 26.4835, lng: 80.3120, locality: 'Tilak Nagar' },
-  { lat: 26.4833, lng: 80.3118, locality: 'Tilak Nagar' }
-];
-
-const propertyImages = [
-  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109159093-Screenshot%202024-10-28%20at%203.12.10%20PM.png',
-  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109203974-Screenshot%202024-10-28%20at%203.11.59%20PM.png',
-  'https://wityysaver.s3.ap-south-1.amazonaws.com/1730109218140-Screenshot%202024-10-28%20at%203.11.50%20PM.png'
-];
-
-const propertyTypes = ['Apartment', 'House', 'Villa', 'Commercial'];
-const amenities = ['Parking', 'Lift', '24x7 Security', 'Power Backup', 'Garden', 'Gym', 'Swimming Pool'];
-const furnishingOptions = ['Fully Furnished', 'Semi Furnished', 'Unfurnished'];
-
-app.post('/api/populate-kanpur-properties', async (req, res) => {
-  try {
-    const properties = [];
-    const numberOfProperties = Math.max(30, req.body.count || 30); // Ensure minimum 30 properties
-
-    for (let i = 0; i < numberOfProperties; i++) {
-      const locationIndex = i % kanpurLocations.length;
-      const location = kanpurLocations[locationIndex];
-      
-      // Generate a random price between 55 lakhs and 3 crores (in rupees)
-      const price = Math.floor(Math.random() * (30000000 - 5500000 + 1)) + 5500000;
-      
-      // Generate random area between 1000-3000 sq ft
-      const area = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
-      
-      // Calculate a realistic price per square foot
-      const pricePerSqFt = Math.floor(price / area);
-
-      // Generate random number of bedrooms (2-4)
-      const bedrooms = Math.floor(Math.random() * 3) + 2;
-      
-      // Generate random number of bathrooms (bedrooms - 1 or equal to bedrooms)
-      const bathrooms = bedrooms - Math.floor(Math.random() * 2);
-
-      const property = {
-        post_id: `KNP${Date.now().toString()}${i}`,
-        type_name: propertyTypes[Math.floor(Math.random() * propertyTypes.length)],
-        post_title: `${bedrooms} BHK ${propertyTypes[Math.floor(Math.random() * propertyTypes.length)]} for Sale in ${location.locality}`,
-        post_description: `Spacious ${bedrooms} BHK property in prime location of ${location.locality}, Kanpur. Features modern amenities and excellent connectivity.`,
-        address: `${location.locality}, Kanpur, Uttar Pradesh`,
-        latitude: location.lat,
-        longitude: location.lng,
-        location: {
-          type: 'Point',
-          coordinates: [location.lng, location.lat]
-        },
-        price: price,
-        pricePerSqFt: pricePerSqFt,
-        area: area.toString(),
-        bedrooms: bedrooms,
-        bathrooms: bathrooms,
-        furnishing: furnishingOptions[Math.floor(Math.random() * furnishingOptions.length)],
-        amenities: amenities.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 5) + 2),
-        post_image: propertyImages[0],
-        galleryList: propertyImages,
-        verified: true,
-        available: true,
-        total_views: Math.floor(Math.random() * 1000),
-        purpose: 'Buy',
-        construction_status: Math.random() > 0.3 ? 'Ready to Move' : 'Under Construction',
-        possession: 'Immediate',
-        carpetArea: Math.floor(area * 0.75), // Carpet area is typically 75-80% of total area
-        superBuiltupArea: area,
-        broker_status: Math.random() > 0.5 ? 'Broker' : 'Owner',
-        estimatedEMI: Math.floor((price * 0.007)), // Rough monthly EMI estimation
-        transactionType: 'New Property'
-      };
-
-      properties.push(property);
-    }
-
-    // Insert all properties into the database
-    await Property.insertMany(properties);
-
-    res.status(201).json({
-      message: `Successfully created ${properties.length} properties in Kanpur`,
-      propertiesByLocation: properties.reduce((acc, prop) => {
-        const locality = kanpurLocations.find(loc => loc.lat === prop.latitude)?.locality;
-        acc[locality] = (acc[locality] || 0) + 1;
-        return acc;
-      }, {}),
-      totalCount: properties.length
-    });
-
-  } catch (error) {
-    console.error('Error populating properties:', error);
-    res.status(500).json({
-      message: 'Error populating properties',
-      error: error.message
-    });
-  }
-});
 
 
 
