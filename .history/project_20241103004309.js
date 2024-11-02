@@ -13,6 +13,7 @@ const projectSchema = new mongoose.Schema({
     builder: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Builder'
+        required: true
     },
     type: {
         type: String,
