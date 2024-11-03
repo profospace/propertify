@@ -2431,30 +2431,23 @@ app.get('/api/projects', async (req, res) => {
       res.status(500).json({ error: error.message });
   }
 });
+
 // Get project by ID
 app.get('/api/projects/:id', async (req, res) => {
   try {
-      // First try to find by projectId
-      let project = await Project.findOne({ projectId: req.params.id })
-          .populate('builder')
-          .populate('phases.buildings');
+      const project = await Project.findOne({
+          $or: [
+              { _id: req.params.id },
+              { projectId: req.params.id }
+          ]
+      }).populate('builder')
+        .populate('phases.buildings');
       
-      // If not found and ID is a valid ObjectId, try finding by _id
-      if (!project && mongoose.Types.ObjectId.isValid(req.params.id)) {
-          project = await Project.findById(req.params.id)
-              .populate('builder')
-              .populate('phases.buildings');
-      }
-
       if (!project) {
-          console.log('Project not found with ID:', req.params.id);
           return res.status(404).json({ message: 'Project not found' });
       }
-
-      console.log('Found project:', project);
       res.json(project);
   } catch (error) {
-      console.error('Error fetching project:', error);
       res.status(500).json({ error: error.message });
   }
 });
@@ -2692,7 +2685,43 @@ app.get('/api/home-feed', async (req, res) => {
         }))
       })),
       {
-        projectsSection
+        
+          sectionType: 'projectList',
+          headerImage: 'https://example.com/ongoing-projects-banner.jpg',
+          title: 'Ongoing Projects',
+          subtitle: 'Under Construction Properties',
+          backgroundColor: '#ffffff',
+          buttonText: 'View All Projects',
+          buttonLink: 'ofo://projects?status=UNDER_CONSTRUCTION',
+          buttonColor: '#ff6b6b',
+          projects: nearbyProjects
+            .filter(project => {
+              // More lenient status check
+              const status = (project.status || '').toUpperCase();
+              return status.includes('UNDER') || status.includes('CONSTRUCTION') || status === 'ONGOING';
+            })
+            .map(project => ({
+              id: project._id.toString(),
+              projectId: project.projectId,
+              name: project.name || 'Unnamed Project',
+              type: project.type || 'Residential',
+              status: project.status || 'Under Construction',
+              image: project.images?.[0] || project.image || 'https://example.com/default-project.jpg',
+              location: project.location?.address || project.address || '',
+              builder: project.builder ? {
+                name: project.builder.name || 'Unknown Builder',
+                logo: project.builder.logo || null
+              } : null,
+              overview: {
+                startingPrice: project.overview?.priceRange?.min || 
+                              project.overview?.startingPrice || 
+                              project.startingPrice || 0,
+                possession: project.overview?.possessionDate || 
+                           project.possession || 
+                           'Coming Soon'
+              }
+            })),
+          viewType: 'compact'
       },
       {
         sectionType: 'propertyList',

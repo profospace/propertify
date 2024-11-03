@@ -2431,30 +2431,23 @@ app.get('/api/projects', async (req, res) => {
       res.status(500).json({ error: error.message });
   }
 });
+
 // Get project by ID
 app.get('/api/projects/:id', async (req, res) => {
   try {
-      // First try to find by projectId
-      let project = await Project.findOne({ projectId: req.params.id })
-          .populate('builder')
-          .populate('phases.buildings');
+      const project = await Project.findOne({
+          $or: [
+              { _id: req.params.id },
+              { projectId: req.params.id }
+          ]
+      }).populate('builder')
+        .populate('phases.buildings');
       
-      // If not found and ID is a valid ObjectId, try finding by _id
-      if (!project && mongoose.Types.ObjectId.isValid(req.params.id)) {
-          project = await Project.findById(req.params.id)
-              .populate('builder')
-              .populate('phases.buildings');
-      }
-
       if (!project) {
-          console.log('Project not found with ID:', req.params.id);
           return res.status(404).json({ message: 'Project not found' });
       }
-
-      console.log('Found project:', project);
       res.json(project);
   } catch (error) {
-      console.error('Error fetching project:', error);
       res.status(500).json({ error: error.message });
   }
 });
