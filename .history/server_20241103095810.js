@@ -2602,6 +2602,7 @@ app.get('/api/home-feed', async (req, res) => {
           link: option.link
         }))
       })),
+
       {
         sectionType: 'projectList',
         headerImage: 'https://example.com/ongoing-projects-banner.jpg',
