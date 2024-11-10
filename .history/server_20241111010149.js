@@ -1997,6 +1997,10 @@ app.post('/api/carousels/bulk-delete', async (req, res) => {
 
 
 // AWS S3 initialization
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
 
 app.post('/api/buildings/saveBuildingDetails', upload.fields([
   { name: 'galleryList', maxCount: 5 }
