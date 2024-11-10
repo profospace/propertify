@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 
 // Define the schema for individual options
+const mongoose = require('mongoose');
+
+// Define the schema for individual options
 const optionSchema = new mongoose.Schema({
   imagelink: {
     type: String,
