@@ -2899,8 +2899,8 @@ app.get('/api/home-feed', async (req, res) => {
       // Include all ListOptions as separate sections
       ...allListOptions.map(listOption => ({
         sectionType: 'optionList',
-        title: listOption.title,
-        headerImage: listOption.headerImage,
+        headerImage: 'https://example.com/list-banner.jpg',
+        title: listOption.listName,
         subtitle: `Browse ${listOption.listName}`,
         backgroundColor: '#ffffff',
         buttonText: `See All ${listOption.listName}`,
