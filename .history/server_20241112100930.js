@@ -2208,6 +2208,9 @@ app.post('/api/buildings/saveBuildingDetails', upload.fields([
 
 
 
+
+
+
 // app.post('/api/buildings/saveBuildingDetails', upload.fields([
 //   { name: 'galleryList', maxCount: 5 }
 // ]), async (req, res) => {
