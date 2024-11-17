@@ -8,7 +8,6 @@ const uuid = require('uuid'); // Import the uuid library
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const app = express();
-const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import the cors middleware
 const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
@@ -190,187 +189,120 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
-// Authentication Middleware
-const authenticateToken = (req, res, next) => {
-  try {
-      const token = req.header('Authorization')?.replace('Bearer ', '');
-      if (!token) {
-          return res.status(401).json({
-              status_code: '401',
-              success: 'false',
-              msg: 'Authentication token required'
-          });
-      }
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = decoded;
-      next();
-  } catch (error) {
-      return res.status(403).json({
-          status_code: '403',
-          success: 'false',
-          msg: 'Invalid or expired token'
-      });
-  }
-};
-
-// User Routes
 app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
-      const { 
-          name, 
-          email, 
-          socialId, 
-          loginType = 'EMAIL',
-          phone 
-      } = req.body;
+    const { 
+      name, 
+      email, 
+      socialId, 
+      loginType,
+      phone,
+      profile = {} // Optional profile information
+    } = req.body;
 
-      // Validate required fields based on login type
-      if (loginType === 'GOOGLE' && (!email || !socialId)) {
-          return res.status(400).json({
-              status_code: '400',
-              success: 'false',
-              msg: 'Email and socialId are required for Google login'
-          });
+    // Check if user exists
+    let user = await User.findOne({ 
+      $or: [
+        { email },
+        { socialId },
+        { phone }
+      ]
+    });
+
+    if (user) {
+      // Update existing user
+      user.name = name || user.name;
+      user.socialId = socialId || user.socialId;
+      user.loginType = loginType || user.loginType;
+      user.phone = phone || user.phone;
+
+      // Update profile if provided
+      if (profile) {
+        user.profile = {
+          ...user.profile,
+          ...profile
+        };
       }
 
-      // Find user by different identifiers based on login type
-      let query = {};
-      if (loginType === 'GOOGLE') {
-          query = { $or: [{ email }, { socialId }] };
-      } else if (loginType === 'PHONE') {
-          if (!phone) {
-              return res.status(400).json({
-                  status_code: '400',
-                  success: 'false',
-                  msg: 'Phone number is required for phone login'
-              });
-          }
-          query = { phone };
-      } else {
-          if (!email) {
-              return res.status(400).json({
-                  status_code: '400',
-                  success: 'false',
-                  msg: 'Email is required'
-              });
-          }
-          query = { email };
-      }
-
-      let user = await User.findOne(query);
-      let isNewUser = false;
-
-      if (user) {
-          // Update existing user
-          user.name = name || user.name;
-          user.email = email || user.email;
-          user.socialId = socialId || user.socialId;
-          user.loginType = loginType;
-          if (phone) user.phone = phone;
-          
-          await user.save();
-      } else {
-          // Create new user
-          isNewUser = true;
-          const userData = {
-              name,
-              email,
-              socialId,
-              loginType,
-              phone,
-              profile: {
-                  notifications: {
-                      email: true,
-                      push: true
-                  }
-              }
-          };
-
-          user = new User(userData);
-          await user.save();
-      }
-
-      // Generate authentication token
-      const token = user.generateAuthToken();
-
-      const response = {
-          status_code: '200',
-          success: 'true',
-          msg: isNewUser ? 'User created successfully' : 'User details updated successfully',
-          data: {
-              user_id: user._id,
-              name: user.name,
-              email: user.email,
-              phone: user.phone,
-              is_phone_verified: user.isPhoneVerified,
-              token,
-              profile: user.profile
-          }
-      };
-
-      res.status(200).json(response);
-
-  } catch (error) {
-      console.error('Error in saveUserDetails:', error);
-      res.status(500).json({
-          status_code: '500',
-          success: 'false',
-          msg: 'Failed to save user details',
-          error: error.message
+      await user.save();
+    } else {
+      // Create new user
+      user = new User({
+        name,
+        email,
+        socialId,
+        loginType,
+        phone,
+        profile
       });
+      await user.save();
+    }
+
+    // Generate token
+    const token = user.generateAuthToken();
+
+    const response = {
+      status_code: '200',
+      success: 'true',
+      msg: user ? 'User details updated successfully' : 'User created successfully',
+      REAL_ESTATE_APP: {
+        user_id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        token,
+        profile: user.profile
+      }
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error saving user details:', error);
+    res.status(500).json({ 
+      status_code: '500', 
+      success: 'false', 
+      msg: 'Failed to save user details',
+      error: error.message 
+    });
   }
 });
 
-// Get user profile endpoint
-app.get('/api/users/profile', authenticateToken, async (req, res) => {
+// Update user profile
+app.put('/api/users/profile', authenticateToken, async (req, res) => {
   try {
-      const user = await User.findById(req.user.id).select('-socialId -__v');
+    const { profile } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { 
+        $set: { profile }
+      },
+      { new: true }
+    );
 
-      if (!user) {
-          return res.status(404).json({
-              status_code: '404',
-              success: 'false',
-              msg: 'User not found'
-          });
-      }
-
-      res.json({
-          status_code: '200',
-          success: 'true',
-          msg: 'Profile retrieved successfully',
-          data: {
-              user_id: user._id,
-              name: user.name,
-              email: user.email,
-              phone: user.phone,
-              is_phone_verified: user.isPhoneVerified,
-              profile: user.profile
-          }
+    if (!user) {
+      return res.status(404).json({
+        status_code: '404',
+        success: 'false',
+        msg: 'User not found'
       });
+    }
+
+    res.json({
+      status_code: '200',
+      success: 'true',
+      msg: 'Profile updated successfully',
+      profile: user.profile
+    });
   } catch (error) {
-      console.error('Error fetching profile:', error);
-      res.status(500).json({
-          status_code: '500',
-          success: 'false',
-          msg: 'Failed to fetch profile',
-          error: error.message
-      });
+    console.error('Error updating profile:', error);
+    res.status(500).json({
+      status_code: '500',
+      success: 'false',
+      msg: 'Failed to update profile'
+    });
   }
 });
-
-// Keep your existing routes...
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Global error:', err);
-  res.status(err.status || 500).json({
-      status_code: err.status || '500',
-      success: 'false',
-      msg: err.message || 'Internal server error',
-      error: process.env.NODE_ENV === 'production' ? {} : err
-  });
-});
-
 
 // Track property view
 app.post('/api/users/history/view', authenticateToken, async (req, res) => {

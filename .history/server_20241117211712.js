@@ -8,7 +8,6 @@ const uuid = require('uuid'); // Import the uuid library
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const app = express();
-const jwt = require('jsonwebtoken');
 const cors = require('cors'); // Import the cors middleware
 const PORT = process.env.PORT || 5053;
 const mongoose = require('mongoose');
