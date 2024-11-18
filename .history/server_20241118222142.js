@@ -52,27 +52,6 @@ app.use(bodyParser.urlencoded({ extended: true}));
 app.use(cors());
 
 
-// Define public routes
-const publicRoutes = [
-  '/api/send-otp',
-  '/api/verify-otp', 
-  '/api/users/saveUserDetails',
-  '/constant',
-  '/api/colors'
-];
-
-// Authentication middleware - add this before any route definitions
-app.use((req, res, next) => {
-  // Check if the route is public
-  if (publicRoutes.some(route => req.path.startsWith(route))) {
-      return next();
-  }
-
-  // For all other routes, apply authentication
-  authenticateToken(req, res, next);
-});
-
-
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -213,6 +192,28 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  try {
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      if (!token) {
+          return res.status(401).json({
+              status_code: '401',
+              success: 'false',
+              msg: 'Authentication token required'
+          });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      next();
+  } catch (error) {
+      return res.status(403).json({
+          status_code: '403',
+          success: 'false',
+          msg: 'Invalid or expired token'
+      });
+  }
+};
 
 app.post('/api/users/saveUserDetails', async (req, res) => {
   try {

@@ -213,6 +213,28 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  try {
+      const token = req.header('Authorization')?.replace('Bearer ', '');
+      if (!token) {
+          return res.status(401).json({
+              status_code: '401',
+              success: 'false',
+              msg: 'Authentication token required'
+          });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded;
+      next();
+  } catch (error) {
+      return res.status(403).json({
+          status_code: '403',
+          success: 'false',
+          msg: 'Invalid or expired token'
+      });
+  }
+};
 
 app.post('/api/users/saveUserDetails', async (req, res) => {
   try {
