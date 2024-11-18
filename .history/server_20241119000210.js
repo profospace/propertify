@@ -488,70 +488,70 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   }
 });
 
-// app.post('/api/verify-otp', async (req, res) => {
-//   try {
-//       const { phoneNumber, otp } = req.body;
+app.post('/api/verify-otp', async (req, res) => {
+  try {
+      const { phoneNumber, otp } = req.body;
       
-//       const otpDoc = await OTP.findOne({ phoneNumber });
+      const otpDoc = await OTP.findOne({ phoneNumber });
       
-//       if (!otpDoc || otpDoc.otp !== otp) {
-//           return res.status(400).json({
-//               status_code: '400',
-//               success: 'false',
-//               msg: 'Invalid OTP'
-//           });
-//       }
+      if (!otpDoc || otpDoc.otp !== otp) {
+          return res.status(400).json({
+              status_code: '400',
+              success: 'false',
+              msg: 'Invalid OTP'
+          });
+      }
 
-//       // Find and update user
-//       const user = await User.findOneAndUpdate(
-//           { phone: phoneNumber },
-//           { 
-//               $set: { 
-//                   isPhoneVerified: true,
-//                   lastLogin: new Date()
-//               }
-//           },
-//           { new: true }
-//       );
+      // Find and update user
+      const user = await User.findOneAndUpdate(
+          { phone: phoneNumber },
+          { 
+              $set: { 
+                  isPhoneVerified: true,
+                  lastLogin: new Date()
+              }
+          },
+          { new: true }
+      );
 
-//       if (!user) {
-//           return res.status(404).json({
-//               status_code: '404',
-//               success: 'false',
-//               msg: 'User not found'
-//           });
-//       }
+      if (!user) {
+          return res.status(404).json({
+              status_code: '404',
+              success: 'false',
+              msg: 'User not found'
+          });
+      }
 
-//       // Generate new token with updated information
-//       const token = user.generateAuthToken();
+      // Generate new token with updated information
+      const token = user.generateAuthToken();
 
-//       // Delete OTP document
-//       await OTP.deleteOne({ _id: otpDoc._id });
+      // Delete OTP document
+      await OTP.deleteOne({ _id: otpDoc._id });
 
-//       res.json({
-//           status_code: '200',
-//           success: 'true',
-//           msg: 'Phone verified successfully',
-//           data: {
-//               user_id: user._id,
-//               name: user.name,
-//               email: user.email,
-//               phone: user.phone,
-//               is_phone_verified: true,
-//               token,
-//               profile: user.profile
-//           }
-//       });
-//   } catch (error) {
-//       console.error('Error verifying OTP:', error);
-//       res.status(500).json({
-//           status_code: '500',
-//           success: 'false',
-//           msg: 'Failed to verify OTP',
-//           error: error.message
-//       });
-//   }
-// });
+      res.json({
+          status_code: '200',
+          success: 'true',
+          msg: 'Phone verified successfully',
+          data: {
+              user_id: user._id,
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              is_phone_verified: true,
+              token,
+              profile: user.profile
+          }
+      });
+  } catch (error) {
+      console.error('Error verifying OTP:', error);
+      res.status(500).json({
+          status_code: '500',
+          success: 'false',
+          msg: 'Failed to verify OTP',
+          error: error.message
+      });
+  }
+});
 
 // Add phone number endpoint
 app.post('/api/users/update-phone', authenticateToken, async (req, res) => {
