@@ -366,6 +366,7 @@ app.post('/api/users/saveUserDetails', async (req, res) => {
   }
 });
 
+// Modify existing verify-otp endpoint to handle both initial verification and updates
 app.post('/api/verify-otp', async (req, res) => {
   try {
       const { phoneNumber, otp } = req.body;
