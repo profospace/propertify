@@ -1421,11 +1421,14 @@ app.get('/api/details/:id', async (req, res, next) => {
       { $inc: { total_views: 1 } }
     ).catch(err => console.warn('View count update failed:', err));
 
-    if (property) {
-      res.json(property);
-  } else {
-      res.status(404).send('Property not found');
-  }
+    res.json({
+      success: true,
+      data: property,
+      meta: {
+        views: property.total_views || 0,
+        lastUpdated: property.updatedAt,
+      }
+    });
 
   } catch (error) {
     next(error);
