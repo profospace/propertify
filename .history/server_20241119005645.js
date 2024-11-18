@@ -1386,20 +1386,20 @@ app.get('/api/details/:id', async (req, res, next) => {
     }
 
     // Track analytics event with error handling
-    // try {
-    //   const userId = "37827382" + propertyId;
-    //   await sendEventToAmplitude(userId, 'property_view', {
-    //     property_id: propertyId,
-    //     client_ip: cleanIpAddress(clientIp),
-    //     location: {
-    //       city: locationData.city,
-    //       region: locationData.region,
-    //       country: locationData.country
-    //     }
-    //   });
-    // } catch (analyticsError) {
-    //   console.warn('Analytics tracking failed:', analyticsError.message);
-    // }
+    try {
+      const userId = "37827382" + propertyId;
+      await sendEventToAmplitude(userId, 'property_view', {
+        property_id: propertyId,
+        client_ip: cleanIpAddress(clientIp),
+        location: {
+          city: locationData.city,
+          region: locationData.region,
+          country: locationData.country
+        }
+      });
+    } catch (analyticsError) {
+      console.warn('Analytics tracking failed:', analyticsError.message);
+    }
 
     // Find property with timeout
     const property = await Promise.race([
@@ -1421,11 +1421,19 @@ app.get('/api/details/:id', async (req, res, next) => {
       { $inc: { total_views: 1 } }
     ).catch(err => console.warn('View count update failed:', err));
 
-    if (property) {
-      res.json(property);
-  } else {
-      res.status(404).send('Property not found');
-  }
+    res.json({
+      success: true,
+      data: property,
+      meta: {
+        views: property.total_views || 0,
+        lastUpdated: property.updatedAt,
+        location: {
+          city: locationData.city,
+          region: locationData.region,
+          country: locationData.country
+        }
+      }
+    });
 
   } catch (error) {
     next(error);
