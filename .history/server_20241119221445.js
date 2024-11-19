@@ -3445,27 +3445,6 @@ app.post('/api/projects', upload.fields([
   }
 });
 
-// Get all projects
-app.get('/api/projects', async (req, res) => {
-  try {
-      const { type, status, city } = req.query;
-      const filter = {};
-      
-      if (type) filter.type = type;
-      if (status) filter.status = status;
-      if (city) filter['location.city'] = city;
-      
-      const projects = await Project.find(filter)
-          .populate('builder', 'name logo')
-          .select('-__v');
-          
-      res.json(projects);
-  } catch (error) {
-      res.status(500).json({ error: error.message });
-  }
-});
-
-
 
 
 
