@@ -88,17 +88,17 @@ app.use(cors());
 
 const protectedRoutes = [
   // Property routes
- // '/api/details',
-  //'/api/properties/user',
-  //'/api/properties/building',
-  //'/api/properties/filter',
-  //'/api/properties/all',
-  //'/api/upload/property',
-  //'/api/properties/emi-based',
+  '/api/details',
+  '/api/properties/user',
+  '/api/properties/building',
+  '/api/properties/filter',
+  '/api/properties/all',
+  '/api/upload/property',
+  '/api/properties/emi-based',
   
   // Building routes
- // '/api/buildings',
-  //'/api/buildings/saveBuildingDetails',
+  '/api/buildings',
+  '/api/buildings/saveBuildingDetails',
   
   // User routes
   '/api/users/profile',
@@ -106,14 +106,14 @@ const protectedRoutes = [
   '/api/users/history',
   
   // Builder routes
-  //'/builders',
-  //'/api/builders',
+  '/builders',
+  '/api/builders',
   
   // Project routes
-  //'/api/projects',
+  '/api/projects',
   
   // List options routes
-  //'/api/list-options',
+  '/api/list-options',
   
   // Carousel routes
   '/api/carousels'
