@@ -3364,18 +3364,18 @@ app.get('/builders/:id/analytics', async (req, res) => {
 
 
 // Create a new project
-// app.post('/api/projects', async (req, res) => {
-//   try {
-//       const project = new Project({
-//           ...req.body,
-//           projectId: `PRJ${Date.now()}`
-//       });
-//       await project.save();
-//       res.status(201).json(project);
-//   } catch (error) {
-//       res.status(400).json({ error: error.message });
-//   }
-// });
+app.post('/api/projects', async (req, res) => {
+  try {
+      const project = new Project({
+          ...req.body,
+          projectId: `PRJ${Date.now()}`
+      });
+      await project.save();
+      res.status(201).json(project);
+  } catch (error) {
+      res.status(400).json({ error: error.message });
+  }
+});
 
 // Get all projects
 app.post('/api/projects', upload.fields([
@@ -3444,10 +3444,6 @@ app.post('/api/projects', upload.fields([
     res.status(400).json({ error: error.message });
   }
 });
-
-
-
-
 // Get project by ID
 app.get('/api/projects/:id', async (req, res) => {
   try {
@@ -3608,26 +3604,23 @@ app.get('/api/home-feed', async (req, res) => {
 
 
 
+
     const projectsSection = {
       sectionType: 'projectList',
       headerImage: 'https://example.com/ongoing-projects-banner.jpg',
-      title: 'All Projects',
-      subtitle: 'Browse All Properties',
+      title: 'Ongoing Projects',
+      subtitle: 'Under Construction Properties',
       backgroundColor: '#ffffff',
       buttonText: 'View All Projects',
-      buttonLink: 'ofo://projects',
+      buttonLink: 'ofo://projects?status=UNDER_CONSTRUCTION',
       buttonColor: '#ff6b6b',
-      projects: nearbyProjects.map(project => {
-        console.log('Processing project:', {
-          id: project._id,
-          name: project.name,
-          type: project.type,
-          status: project.status,
-          location: project.location?.address,
-          startingPrice: project.overview?.priceRange?.min
-        });
-        
-        return {
+      projects: nearbyProjects
+        .filter(project => {
+          // More lenient status check
+          const status = (project.status || '').toUpperCase();
+          return status.includes('UNDER') || status.includes('CONSTRUCTION') || status === 'ONGOING';
+        })
+        .map(project => ({
           id: project._id.toString(),
           projectId: project.projectId,
           name: project.name || 'Unnamed Project',
@@ -3647,16 +3640,9 @@ app.get('/api/home-feed', async (req, res) => {
                        project.possession || 
                        'Coming Soon'
           }
-        };
-      }),
+        })),
       viewType: 'compact'
     };
-    
-    console.log('Final projects section:', {
-      totalProjects: projectsSection.projects.length,
-      sectionType: projectsSection.sectionType,
-      projects: projectsSection.projects
-    });
 
     console.log('Processed projects section:', projectsSection);
 
