@@ -3403,7 +3403,7 @@ app.post('/api/projects', upload.fields([
         const galleryResult = await s3.upload(galleryParams).promise();
         uploadedImages.push(galleryResult.Location);
       }
-
+      
       if (uploadedImages.length > 0) {
         projectData.gallery = [{
           category: 'general',
