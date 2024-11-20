@@ -3446,9 +3446,9 @@ app.post('/api/projects', upload.fields([
     // }
 
     // Save updated project with images
-    // if (uploadedImages.length > 0 || uploadedFloorPlanImages.length > 0) {
-    //   await project.save();
-    // }
+    if (uploadedImages.length > 0 || uploadedFloorPlanImages.length > 0) {
+      await project.save();
+    }
 
 
    
