@@ -3381,18 +3381,18 @@ app.get('/builders/:id/analytics', async (req, res) => {
 
 app.post('/api/projects', upload.fields([
   { name: 'galleryList', maxCount: 10 },
-  { name: 'floorPlanImages', maxCount: 10 }
+  { name: 'floorPlanImages', maxCount: 10 } // Add this line for floor plan images
+
 ]), async (req, res) => {
   try {
     console.log('Raw request body:', req.body);
     console.log('Files received:', req.files);
 
-    // Get project data directly from req.body since it's already parsed
-    const projectData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    // Use projectData instead of data
+    const projectData = JSON.parse(req.body.projectData || '{}');
     const uploadedImages = [];
-    const uploadedFloorPlanImages = [];
 
-    // Handle gallery images
+    // Handle gallery images if they exist
     if (req.files && req.files['galleryList']) {
       for (const galleryFile of req.files['galleryList']) {
         const galleryParams = {
@@ -3404,6 +3404,8 @@ app.post('/api/projects', upload.fields([
         uploadedImages.push(galleryResult.Location);
       }
 
+      
+      // Add gallery images to project data
       if (uploadedImages.length > 0) {
         projectData.gallery = [{
           category: 'general',
@@ -3412,32 +3414,28 @@ app.post('/api/projects', upload.fields([
       }
     }
 
-    // Handle floor plan images
-    if (req.files && req.files['floorPlanImages']) {
-      for (const floorPlanFile of req.files['floorPlanImages']) {
-        const floorPlanParams = {
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: `floor_plan_images/${uuid.v4()}_${floorPlanFile.originalname}`,
-          Body: fs.createReadStream(floorPlanFile.path),
-        };
-        const floorPlanResult = await s3.upload(floorPlanParams).promise();
-        uploadedFloorPlanImages.push(floorPlanResult.Location);
-      }
 
-      if (projectData.floorPlans && projectData.floorPlans.length > 0) {
+      // Handle floor plan images if they exist
+      if (req.files && req.files['floorPlanImages']) {
+        for (const floorPlanFile of req.files['floorPlanImages']) {
+          const floorPlanParams = {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: `floor_plan_images/${uuid.v4()}_${floorPlanFile.originalname}`,
+            Body: fs.createReadStream(floorPlanFile.path),
+          };
+          const floorPlanResult = await s3.upload(floorPlanParams).promise();
+          uploadedFloorPlanImages.push(floorPlanResult.Location);
+        }
+  
+        // Update the floorPlans array in the projectData
         projectData.floorPlans = projectData.floorPlans.map((plan, index) => ({
           ...plan,
-          image: uploadedFloorPlanImages[index] || plan.image
+          image: uploadedFloorPlanImages[index] || plan.image // Use the uploaded image or the existing one
         }));
       }
-    }
+  
 
-    // Ensure required fields are present
-    if (!projectData.projectId || !projectData.name || !projectData.type) {
-      throw new Error('Missing required fields: projectId, name, and type are required');
-    }
-
-    console.log('Processed project data:', projectData);
+    console.log('Parsed project data:', projectData);
     const project = new Project(projectData);
     await project.save();
 
