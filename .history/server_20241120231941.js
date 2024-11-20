@@ -3409,9 +3409,6 @@ app.post('/api/projects', upload.fields([
     }
 
 
-    console.log('after processing the floor plan =======>>>', projectData);
-
-
     const project = new Project(projectData);
     await project.save();
 

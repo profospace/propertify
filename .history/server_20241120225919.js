@@ -3403,17 +3403,8 @@ app.post('/api/projects', upload.fields([
     console.log('before adding Project data:=======>>>', projectData);
 
 
-     // Parse floorPlans if it's a string
-     if (typeof projectData.floorPlans === 'string') {
-      projectData.floorPlans = JSON.parse(projectData.floorPlans);
-    }
-
-
-    console.log('after processing the floor plan =======>>>', projectData);
-
-
     const project = new Project(projectData);
-    await project.save();
+    await project.save();l
 
     // const uploadedImages = [];
     // const uploadedFloorPlanImages = [];
