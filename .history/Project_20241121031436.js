@@ -126,10 +126,10 @@ const projectSchema = new mongoose.Schema({
         category: String,
         images: [String]
     }],
-    brochures: {
-        type: [brochureSchema],
-        default: []
-    }, 
+    brochures: [{
+        name: String,
+        url: String
+    }],
     masterPlan: String,
     reraDetails: {
         reraNumber: String,

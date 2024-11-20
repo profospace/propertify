@@ -1,22 +1,5 @@
 const mongoose = require('mongoose');
 
-
-const brochureSchema = new mongoose.Schema({
-    title: {
-        type: String,
-        required: true
-    },
-    url: {
-        type: String,
-        required: true
-    },
-    thumbnail: {
-        type: String,
-        required: true
-    }
-}, { _id: false });
-
-
 const floorPlanSchema = new mongoose.Schema({
     name: String,
     type: String,
@@ -126,10 +109,10 @@ const projectSchema = new mongoose.Schema({
         category: String,
         images: [String]
     }],
-    brochures: {
-        type: [brochureSchema],
-        default: []
-    }, 
+    brochures: [{
+        name: String,
+        url: String
+    }],
     masterPlan: String,
     reraDetails: {
         reraNumber: String,
@@ -142,17 +125,14 @@ const projectSchema = new mongoose.Schema({
         percentage: Number,
         description: String
     }],
-
     nearbyLocations: [{
-        type: {
-            type: String,
-            enum: ['EDUCATION', 'HEALTHCARE', 'SHOPPING', 'TRANSPORT', 'ENTERTAINMENT', 'BUSINESS']
-        },
-        name: String,
-        distance: Number,  // in kilometers
-        duration: Number   // in minutes
+        category: String,
+        places: [{
+            name: String,
+            distance: Number,
+            timeToReach: String
+        }]
     }],
-
     phases: [{
         name: String,
         status: String,
