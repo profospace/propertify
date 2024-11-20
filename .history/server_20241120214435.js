@@ -3433,14 +3433,13 @@ app.post('/api/projects', upload.fields([
       }
 
       // Update floor plan images
-      if (projectData.floorPlans?.length > 0 && uploadedFloorPlanImages.length > 0) {
-        projectData.floorPlans.forEach((plan, index) => {
-          if (uploadedFloorPlanImages[index]) {
-            plan.image = uploadedFloorPlanImages[index];
-          }
-        });
-      }
-    }
+    //   if (projectData.floorPlans?.length > 0) {
+    //     projectData.floorPlans = projectData.floorPlans.map((plan, index) => ({
+    //       ...plan,
+    //       image: uploadedFloorPlanImages[index] || plan.image
+    //     }));
+    //   }
+    // }
 
     console.log('Processed project data:', projectData);
     const project = new Project(projectData);
