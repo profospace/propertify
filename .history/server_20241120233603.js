@@ -3413,7 +3413,6 @@ app.post('/api/projects', upload.fields([
         ...projectData,
         floorPlans: JSON.parse(JSON.stringify(projectData.floorPlans))
       };
-    }
 
     console.log('after processing the floor plan =======>>>', projectData);
 
