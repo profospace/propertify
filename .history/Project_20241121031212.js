@@ -1,22 +1,5 @@
 const mongoose = require('mongoose');
 
-
-const brochureSchema = new mongoose.Schema({
-    title: {
-        type: String,
-        required: true
-    },
-    url: {
-        type: String,
-        required: true
-    },
-    thumbnail: {
-        type: String,
-        required: true
-    }
-}, { _id: false });
-
-
 const floorPlanSchema = new mongoose.Schema({
     name: String,
     type: String,
@@ -126,10 +109,10 @@ const projectSchema = new mongoose.Schema({
         category: String,
         images: [String]
     }],
-    brochures: {
-        type: [brochureSchema],
-        default: []
-    }, 
+    brochures: [{
+        name: String,
+        url: String
+    }],
     masterPlan: String,
     reraDetails: {
         reraNumber: String,
