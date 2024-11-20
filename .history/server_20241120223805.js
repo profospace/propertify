@@ -3397,9 +3397,9 @@ app.post('/api/projects', upload.fields([
       projectData = req.body.projectData;
     }
 
-    console.log('Processed project data:======>>>>', projectData);
+    console.log('Processed project data:', projectData);
 
-    console.log('before adding Project data:=======>>>', projectData);
+    console.log('before adding Project data:', projectData);
 
 
     const project = new Project(projectData);
