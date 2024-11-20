@@ -3391,7 +3391,7 @@ app.post('/api/projects', upload.fields([
     try {
       // Check if projectData is a string and needs parsing
          // Get project data directly from req.body since it's already parsed
-     projectData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const projectData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     } catch (e) {
       // If parsing fails, assume it's already an object
       projectData = req.body.projectData;
