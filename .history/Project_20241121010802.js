@@ -137,7 +137,20 @@ const projectSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-
+const floorPlanSchema = new mongoose.Schema({
+    name: String,
+    type: String,
+    bedrooms: Number,
+    bathrooms: Number, 
+    superArea: Number,
+    carpetArea: Number,
+    price: Number,
+    image: String,
+    isActive: { 
+      type: Boolean,
+      default: true
+    }
+   }, { _id: false }); // Disable _id for subdocuments
    
 
 projectSchema.index({ 'location.coordinates': '2dsphere' });
