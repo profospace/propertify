@@ -3378,16 +3378,11 @@ app.get('/builders/:id/analytics', async (req, res) => {
 // });
 
 
-
 app.post('/api/projects', upload.fields([
   { name: 'galleryList', maxCount: 10 }
 ]), async (req, res) => {
   try {
-    console.log('Raw request body:', req.body);
-    console.log('Files received:', req.files);
-
-    // Use projectData instead of data
-    const projectData = JSON.parse(req.body.projectData || '{}');
+    const projectData = JSON.parse(req.body.data || '{}');
     const uploadedImages = [];
 
     // Handle gallery images if they exist
@@ -3411,7 +3406,6 @@ app.post('/api/projects', upload.fields([
       }
     }
 
-    console.log('Parsed project data:', projectData);
     const project = new Project(projectData);
     await project.save();
 
@@ -3424,7 +3418,6 @@ app.post('/api/projects', upload.fields([
 
     res.status(201).json(project);
   } catch (error) {
-    console.error('Error creating project:', error);
     // Cleanup on error
     if (req.files) {
       Object.values(req.files).flat().forEach(file => {
