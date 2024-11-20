@@ -48,19 +48,20 @@ const projectSchema = new mongoose.Schema({
             coordinates: [Number] // [longitude, latitude]
         }
     },
-    floorPlans: [{
-        _id: false,  // Disable automatic _id
-        name: String,
-        type: String,
-        bedrooms: Number,
-        bathrooms: Number,
-        superArea: Number,
-        carpetArea: Number,
-        price: Number,
-        image: String,
-        isActive: Boolean
-    }],
-    
+    floorPlans: {
+        type: [{
+            name: String,
+            type: String,
+            bedrooms: Number,
+            bathrooms: Number,
+            superArea: Number,
+            carpetArea: Number,
+            price: Number,
+            image: String,
+            isActive: Boolean
+        }],
+        default: undefined
+    },
     amenities: [{
         category: String,
         items: [String]
