@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 
+
+
 const brochureSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -188,16 +190,5 @@ const projectSchema = new mongoose.Schema({
 
 
 
-
-
 projectSchema.index({ 'location.coordinates': '2dsphere' });
-projectSchema.index({ connectedBuildings: 1 });
-projectSchema.index({ connectedProperties: 1 });
-
-
-projectSchema.pre('find', function(next) {
-    this.populate('connectedBuildings', 'buildingId name totalProperties');
-    this.populate('connectedProperties', 'post_id post_title');
-    next();
-});
 module.exports = mongoose.model('Project', projectSchema);

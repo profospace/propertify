@@ -185,19 +185,19 @@ const projectSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-
-
-
+async updateStatistics() {
+    const properties = await mongoose.model('Property')
+        .find({ _id: { $in: this.connectedProperties } });
+    
+    this.statistics.availableProperties = properties.filter(p => p.available).length;
+    this.statistics.occupiedProperties = properties.length - this.statistics.availableProperties;
+    
+    await this.save();
+}
+};
 
 
 projectSchema.index({ 'location.coordinates': '2dsphere' });
 projectSchema.index({ connectedBuildings: 1 });
 projectSchema.index({ connectedProperties: 1 });
-
-
-projectSchema.pre('find', function(next) {
-    this.populate('connectedBuildings', 'buildingId name totalProperties');
-    this.populate('connectedProperties', 'post_id post_title');
-    next();
-});
 module.exports = mongoose.model('Project', projectSchema);

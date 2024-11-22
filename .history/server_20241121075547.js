@@ -16,7 +16,7 @@ const Property = require('./models/Property'); // Make sure this path is correct
 const User = require('./User'); // Import the User model
 const Building = require('./Building'); // Import the User model
 const Category = require('./Category')
-const Project = require('./Project'); // Add this line with your other imports
+const Project = require('./project'); // Add this line with your other imports
 const Builder = require('./Builder')
 const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
@@ -3620,20 +3620,28 @@ app.post('/api/projects', upload.fields([
   { name: 'floorPlanImages', maxCount: 10 }
 ]), async (req, res) => {
   try {
-    let projectData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    console.log('Raw request body:', req.body);
 
-    // Parse gallery data if it's a string
-    if (typeof projectData.gallery === 'string') {
-      try {
-        projectData.gallery = JSON.parse(projectData.gallery);
-      } catch (e) {
-        console.error('Error parsing gallery:', e);
-      }
+    console.log('Files received:', req.files);
+
+    let projectData;
+    try {
+      // Check if projectData is a string and needs parsing
+         // Get project data directly from req.body since it's already parsed
+     projectData = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch (e) {
+      // If parsing fails, assume it's already an object
+      projectData = req.body.projectData;
     }
 
-    // Parse floor plans if needed
+    console.log('Processed project data:======>>>>', projectData);
+
+    console.log('before adding Project data:=======>>>', projectData);
+
+
     if (typeof projectData.floorPlans === 'string') {
       try {
+        // Remove the concatenation artifacts and parse
         const cleanFloorPlans = projectData.floorPlans
           .replace(/\n/g, '')
           .replace(/'\s*\+\s*'/g, '')
@@ -3644,44 +3652,48 @@ app.post('/api/projects', upload.fields([
       }
     }
 
+    console.log('after processing the floor plan =======>>>', projectData);
+
+
     const project = new Project(projectData);
-    
+    await project.save();
+
+    const uploadedImages = [];
+    const uploadedFloorPlanImages = [];
+
     // Handle gallery images
     if (req.files?.galleryList) {
-      const uploadedImages = await Promise.all(req.files.galleryList.map(async (file) => {
+      for (const file of req.files.galleryList) {
         const params = {
           Bucket: process.env.AWS_BUCKET_NAME,
           Key: `gallery_images/${uuid.v4()}_${file.originalname}`,
           Body: fs.createReadStream(file.path),
         };
         const result = await s3.upload(params).promise();
-        return result.Location;
-      }));
+        uploadedImages.push(result.Location);
+      }
 
-      // Map uploaded images to gallery categories
-      if (uploadedImages.length > 0 && Array.isArray(project.gallery)) {
-        uploadedImages.forEach((imageUrl, index) => {
-          const categoryIndex = index % project.gallery.length;
-          if (!project.gallery[categoryIndex].images) {
-            project.gallery[categoryIndex].images = [];
-          }
-          project.gallery[categoryIndex].images.push(imageUrl);
-        });
+      if (uploadedImages.length > 0) {
+        project.gallery = [{
+          category: 'general',
+          images: uploadedImages
+        }];
       }
     }
 
     // Handle floor plan images
     if (req.files?.floorPlanImages) {
-      const uploadedFloorPlanImages = await Promise.all(req.files.floorPlanImages.map(async (file) => {
+      for (const file of req.files.floorPlanImages) {
         const params = {
           Bucket: process.env.AWS_BUCKET_NAME,
           Key: `floor_plan_images/${uuid.v4()}_${file.originalname}`,
           Body: fs.createReadStream(file.path),
         };
         const result = await s3.upload(params).promise();
-        return result.Location;
-      }));
+        uploadedFloorPlanImages.push(result.Location);
+      }
 
+      // Update floor plan images if any were uploaded
       if (uploadedFloorPlanImages.length > 0) {
         project.floorPlans = project.floorPlans.map((plan, index) => ({
           ...plan.toObject(),
@@ -3690,8 +3702,13 @@ app.post('/api/projects', upload.fields([
       }
     }
 
-    await project.save();
+   // Save updated project with images
+    if (uploadedImages.length > 0 || uploadedFloorPlanImages.length > 0) {
+      await project.save();
+    }
 
+
+   
     // Cleanup temp files
     if (req.files) {
       Object.values(req.files).flat().forEach(file => {
@@ -3702,6 +3719,7 @@ app.post('/api/projects', upload.fields([
     res.status(201).json(project);
   } catch (error) {
     console.error('Error creating project:', error);
+    // Cleanup on error
     if (req.files) {
       Object.values(req.files).flat().forEach(file => {
         fs.existsSync(file.path) && fs.unlinkSync(file.path);
