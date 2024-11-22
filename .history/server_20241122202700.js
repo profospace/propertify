@@ -17,7 +17,6 @@ const User = require('./User'); // Import the User model
 const Building = require('./Building'); // Import the User model
 const Category = require('./Category')
 const Project = require('./project'); // Add this line with your other imports
-const projects = require('./project')
 const Builder = require('./Builder')
 const constantData = require('./ConstantModel');
 const ColorGradient = require('./dynamicdata');
@@ -3383,234 +3382,234 @@ app.get('/builders/:id/analytics', async (req, res) => {
 // Connect building to project
 const connectBuildingToProject = async (req, res) => {
   try {
-      const { projectId, buildingId } = req.params;
+    const { projectId, buildingId } = req.params;
 
-      // Validate project and building existence
-      const [project, building] = await Promise.all([
-          Project.findById(projectId),
-          Building.findById(buildingId)
-      ]);
+    // Validate project and building existence
+    const [project, building] = await Promise.all([
+      Project.findById(projectId),
+      Building.findById(buildingId)
+    ]);
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
-      }
-      if (!building) {
-          return res.status(404).json({ error: 'Building not found' });
-      }
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (!building) {
+      return res.status(404).json({ error: 'Building not found' });
+    }
 
-      // Check if building is already connected to another project
-      if (building.project && building.project.toString() !== projectId) {
-          return res.status(400).json({ 
-              error: 'Building is already connected to another project' 
-          });
-      }
-
-      // Add building to project's connected buildings
-      if (!project.connectedBuildings.includes(buildingId)) {
-          project.connectedBuildings.push(buildingId);
-          project.statistics.totalBuildings += 1;
-      }
-
-      // Update building with project reference
-      building.project = projectId;
-
-      // Save both documents
-      await Promise.all([project.save(), building.save()]);
-
-      res.status(200).json({
-          message: 'Building connected successfully',
-          project: {
-              id: project._id,
-              totalBuildings: project.statistics.totalBuildings
-          }
+    // Check if building is already connected to another project
+    if (building.project && building.project.toString() !== projectId) {
+      return res.status(400).json({
+        error: 'Building is already connected to another project'
       });
+    }
+
+    // Add building to project's connected buildings
+    if (!project.connectedBuildings.includes(buildingId)) {
+      project.connectedBuildings.push(buildingId);
+      project.statistics.totalBuildings += 1;
+    }
+
+    // Update building with project reference
+    building.project = projectId;
+
+    // Save both documents
+    await Promise.all([project.save(), building.save()]);
+
+    res.status(200).json({
+      message: 'Building connected successfully',
+      project: {
+        id: project._id,
+        totalBuildings: project.statistics.totalBuildings
+      }
+    });
 
   } catch (error) {
-      console.error('Error connecting building:', error);
-      res.status(500).json({ error: 'Failed to connect building to project' });
+    console.error('Error connecting building:', error);
+    res.status(500).json({ error: 'Failed to connect building to project' });
   }
 };
 
 // Disconnect building from project
 const disconnectBuildingFromProject = async (req, res) => {
   try {
-      const { projectId, buildingId } = req.params;
+    const { projectId, buildingId } = req.params;
 
-      const [project, building] = await Promise.all([
-          Project.findById(projectId),
-          Building.findById(buildingId)
-      ]);
+    const [project, building] = await Promise.all([
+      Project.findById(projectId),
+      Building.findById(buildingId)
+    ]);
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (!building) {
+      return res.status(404).json({ error: 'Building not found' });
+    }
+
+    // Remove building from project's connected buildings
+    const buildingIndex = project.connectedBuildings.indexOf(buildingId);
+    if (buildingIndex > -1) {
+      project.connectedBuildings.splice(buildingIndex, 1);
+      project.statistics.totalBuildings -= 1;
+    }
+
+    // Remove project reference from building
+    building.project = undefined;
+
+    await Promise.all([project.save(), building.save()]);
+
+    res.status(200).json({
+      message: 'Building disconnected successfully',
+      project: {
+        id: project._id,
+        totalBuildings: project.statistics.totalBuildings
       }
-      if (!building) {
-          return res.status(404).json({ error: 'Building not found' });
-      }
-
-      // Remove building from project's connected buildings
-      const buildingIndex = project.connectedBuildings.indexOf(buildingId);
-      if (buildingIndex > -1) {
-          project.connectedBuildings.splice(buildingIndex, 1);
-          project.statistics.totalBuildings -= 1;
-      }
-
-      // Remove project reference from building
-      building.project = undefined;
-
-      await Promise.all([project.save(), building.save()]);
-
-      res.status(200).json({
-          message: 'Building disconnected successfully',
-          project: {
-              id: project._id,
-              totalBuildings: project.statistics.totalBuildings
-          }
-      });
+    });
 
   } catch (error) {
-      console.error('Error disconnecting building:', error);
-      res.status(500).json({ error: 'Failed to disconnect building from project' });
+    console.error('Error disconnecting building:', error);
+    res.status(500).json({ error: 'Failed to disconnect building from project' });
   }
 };
 
 // Connect property to project
 const connectPropertyToProject = async (req, res) => {
   try {
-      const { projectId, propertyId } = req.params;
+    const { projectId, propertyId } = req.params;
 
-      const [project, property] = await Promise.all([
-          Project.findById(projectId),
-          Property.findById(propertyId)
-      ]);
+    const [project, property] = await Promise.all([
+      Project.findById(projectId),
+      Property.findById(propertyId)
+    ]);
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
-      }
-      if (!property) {
-          return res.status(404).json({ error: 'Property not found' });
-      }
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (!property) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
 
-      // Check if property is already connected to another project
-      if (property.project && property.project.toString() !== projectId) {
-          return res.status(400).json({ 
-              error: 'Property is already connected to another project' 
-          });
-      }
-
-      // Add property to project's connected properties
-      if (!project.connectedProperties.includes(propertyId)) {
-          project.connectedProperties.push(propertyId);
-          project.statistics.totalProperties += 1;
-          project.statistics.availableProperties += property.available ? 1 : 0;
-      }
-
-      // Update property with project reference
-      property.project = projectId;
-
-      await Promise.all([project.save(), property.save()]);
-
-      res.status(200).json({
-          message: 'Property connected successfully',
-          project: {
-              id: project._id,
-              totalProperties: project.statistics.totalProperties,
-              availableProperties: project.statistics.availableProperties
-          }
+    // Check if property is already connected to another project
+    if (property.project && property.project.toString() !== projectId) {
+      return res.status(400).json({
+        error: 'Property is already connected to another project'
       });
+    }
+
+    // Add property to project's connected properties
+    if (!project.connectedProperties.includes(propertyId)) {
+      project.connectedProperties.push(propertyId);
+      project.statistics.totalProperties += 1;
+      project.statistics.availableProperties += property.available ? 1 : 0;
+    }
+
+    // Update property with project reference
+    property.project = projectId;
+
+    await Promise.all([project.save(), property.save()]);
+
+    res.status(200).json({
+      message: 'Property connected successfully',
+      project: {
+        id: project._id,
+        totalProperties: project.statistics.totalProperties,
+        availableProperties: project.statistics.availableProperties
+      }
+    });
 
   } catch (error) {
-      console.error('Error connecting property:', error);
-      res.status(500).json({ error: 'Failed to connect property to project' });
+    console.error('Error connecting property:', error);
+    res.status(500).json({ error: 'Failed to connect property to project' });
   }
 };
 
 // Disconnect property from project
 const disconnectPropertyFromProject = async (req, res) => {
   try {
-      const { projectId, propertyId } = req.params;
+    const { projectId, propertyId } = req.params;
 
-      const [project, property] = await Promise.all([
-          Project.findById(projectId),
-          Property.findById(propertyId)
-      ]);
+    const [project, property] = await Promise.all([
+      Project.findById(projectId),
+      Property.findById(propertyId)
+    ]);
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    if (!property) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+
+    // Remove property from project's connected properties
+    const propertyIndex = project.connectedProperties.indexOf(propertyId);
+    if (propertyIndex > -1) {
+      project.connectedProperties.splice(propertyIndex, 1);
+      project.statistics.totalProperties -= 1;
+      project.statistics.availableProperties -= property.available ? 1 : 0;
+    }
+
+    // Remove project reference from property
+    property.project = undefined;
+
+    await Promise.all([project.save(), property.save()]);
+
+    res.status(200).json({
+      message: 'Property disconnected successfully',
+      project: {
+        id: project._id,
+        totalProperties: project.statistics.totalProperties,
+        availableProperties: project.statistics.availableProperties
       }
-      if (!property) {
-          return res.status(404).json({ error: 'Property not found' });
-      }
-
-      // Remove property from project's connected properties
-      const propertyIndex = project.connectedProperties.indexOf(propertyId);
-      if (propertyIndex > -1) {
-          project.connectedProperties.splice(propertyIndex, 1);
-          project.statistics.totalProperties -= 1;
-          project.statistics.availableProperties -= property.available ? 1 : 0;
-      }
-
-      // Remove project reference from property
-      property.project = undefined;
-
-      await Promise.all([project.save(), property.save()]);
-
-      res.status(200).json({
-          message: 'Property disconnected successfully',
-          project: {
-              id: project._id,
-              totalProperties: project.statistics.totalProperties,
-              availableProperties: project.statistics.availableProperties
-          }
-      });
+    });
 
   } catch (error) {
-      console.error('Error disconnecting property:', error);
-      res.status(500).json({ error: 'Failed to disconnect property from project' });
+    console.error('Error disconnecting property:', error);
+    res.status(500).json({ error: 'Failed to disconnect property from project' });
   }
 };
 
 // Get all connected buildings for a project
 const getProjectBuildings = async (req, res) => {
   try {
-      const { projectId } = req.params;
-      const project = await Project.findById(projectId)
-          .populate('connectedBuildings', 'buildingId name totalProperties location');
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId)
+      .populate('connectedBuildings', 'buildingId name totalProperties location');
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
-      }
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
 
-      res.status(200).json({
-          projectId: project._id,
-          buildings: project.connectedBuildings
-      });
+    res.status(200).json({
+      projectId: project._id,
+      buildings: project.connectedBuildings
+    });
 
   } catch (error) {
-      console.error('Error fetching project buildings:', error);
-      res.status(500).json({ error: 'Failed to fetch project buildings' });
+    console.error('Error fetching project buildings:', error);
+    res.status(500).json({ error: 'Failed to fetch project buildings' });
   }
 };
 
 // Get all connected properties for a project
 const getProjectProperties = async (req, res) => {
   try {
-      const { projectId } = req.params;
-      const project = await Project.findById(projectId)
-          .populate('connectedProperties', 'post_id post_title type_name price location');
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId)
+      .populate('connectedProperties', 'post_id post_title type_name price location');
 
-      if (!project) {
-          return res.status(404).json({ error: 'Project not found' });
-      }
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
 
-      res.status(200).json({
-          projectId: project._id,
-          properties: project.connectedProperties
-      });
+    res.status(200).json({
+      projectId: project._id,
+      properties: project.connectedProperties
+    });
 
   } catch (error) {
-      console.error('Error fetching project properties:', error);
-      res.status(500).json({ error: 'Failed to fetch project properties' });
+    console.error('Error fetching project properties:', error);
+    res.status(500).json({ error: 'Failed to fetch project properties' });
   }
 };
 
