@@ -185,9 +185,16 @@ const projectSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-
-
-
+async updateStatistics() {
+    const properties = await mongoose.model('Property')
+        .find({ _id: { $in: this.connectedProperties } });
+    
+    this.statistics.availableProperties = properties.filter(p => p.available).length;
+    this.statistics.occupiedProperties = properties.length - this.statistics.availableProperties;
+    
+    await this.save();
+}
+};
 
 
 projectSchema.index({ 'location.coordinates': '2dsphere' });

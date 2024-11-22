@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 
+
+
 const brochureSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -21,14 +23,14 @@ const floorPlanSchema = new mongoose.Schema({
     name: String,
     type: String,
     bedrooms: Number,
-    bathrooms: Number,
+    bathrooms: Number, 
     superArea: Number,
     carpetArea: Number,
     price: Number,
     image: String,
-    isActive: {
-        type: Boolean,
-        default: true
+    isActive: { 
+      type: Boolean,
+      default: true
     }
 }, { _id: false });
 
@@ -97,8 +99,8 @@ const projectSchema = new mongoose.Schema({
     },
     floorPlans: {
         type: [floorPlanSchema],
-        default: []
-    },
+        default: []  
+      },
 
 
 
@@ -129,7 +131,7 @@ const projectSchema = new mongoose.Schema({
     brochures: {
         type: [brochureSchema],
         default: []
-    },
+    }, 
     masterPlan: String,
     reraDetails: {
         reraNumber: String,
@@ -168,16 +170,16 @@ const projectSchema = new mongoose.Schema({
         type: [highlightSchema],
         default: []
     },
-    // Add connected buildings field
-    connectedBuildings: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Building'
-    }],
-    // Add connected properties field
-    connectedProperties: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property'
-    }],
+      // Add connected buildings field
+  connectedBuildings: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Building'
+}],
+// Add connected properties field
+connectedProperties: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Property'
+}],
     availabilityStatus: {
         type: String,
         enum: ['COMING_SOON', 'BOOKING_OPEN', 'ALMOST_SOLD_OUT', 'SOLD_OUT'],
@@ -186,18 +188,7 @@ const projectSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 
-
-
-
+   
 
 projectSchema.index({ 'location.coordinates': '2dsphere' });
-projectSchema.index({ connectedBuildings: 1 });
-projectSchema.index({ connectedProperties: 1 });
-
-
-projectSchema.pre('find', function(next) {
-    this.populate('connectedBuildings', 'buildingId name totalProperties');
-    this.populate('connectedProperties', 'post_id post_title');
-    next();
-});
 module.exports = mongoose.model('Project', projectSchema);
