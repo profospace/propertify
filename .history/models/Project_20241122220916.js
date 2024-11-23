@@ -131,9 +131,12 @@ const projectSchema = new mongoose.Schema({
         default: []
     },
     masterPlan: String,
-    reraNumber: String,
-    reraValidity: String,
-  
+    reraDetails: {
+        reraNumber: String,
+        reraWebsite: String,
+        registrationDate: Date,
+        validUpto: Date
+    },
     paymentPlan: [{
         stage: String,
         percentage: Number,
