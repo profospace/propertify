@@ -132,7 +132,7 @@ const projectSchema = new mongoose.Schema({
     },
     masterPlan: String,
     reraNumber: String,
-    reraValidity: String,
+    reravalidity: Date,
   
     paymentPlan: [{
         stage: String,
