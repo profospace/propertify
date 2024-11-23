@@ -3897,8 +3897,7 @@ app.get('/api/home-feed', async (req, res) => {
           type: project.type,
           status: project.status,
           location: project.location?.address,
-          startingPrice: project.overview?.priceRange?.min,
-          galleryImagesCount: project.gallery?.length || 0
+          startingPrice: project.overview?.priceRange?.min
         });
 
 
