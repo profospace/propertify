@@ -127,7 +127,9 @@ const propertySchema = new mongoose.Schema({
 
 // Indexes
 propertySchema.index({ location: '2dsphere' });
-
+propertySchema.index({ project: 1 });
+propertySchema.index({ building: 1 });
+propertySchema.index({ builder: 1 });
 
 
 
