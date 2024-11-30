@@ -3475,166 +3475,65 @@ const disconnectBuildingFromProject = async (req, res) => {
 };
 
 // Connect property to project
-
-
-// app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
-//   try {
-//     const { projectId, propertyId } = req.params;
-//     console.log('Connecting property:', propertyId, 'to project:', projectId);
-
-//     // Find project using projectId and property using post_id
-//     const project = await Project.findById(projectId);
-//     const property = await Property.findOne({ post_id: propertyId });
-
-//     if (!project) {
-//       console.log('Project not found:', projectId);
-//       return res.status(404).json({ error: 'Project not found' });
-//     }
-//     if (!property) {
-//       console.log('Property not found:', propertyId);
-//       return res.status(404).json({ error: 'Property not found' });
-//     }
-
-//     // Check if property is already connected
-//     if (project.connectedProperties.includes(property._id)) {
-//       return res.status(400).json({ error: 'Property is already connected to this project' });
-//     }
-
-//     // Update project's connected properties array with the property's _id
-//     project.connectedProperties.push(property._id);
-    
-//     // Update project statistics
-//     project.statistics = project.statistics || {};
-//     project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
-//     if (property.available) {
-//       project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
-//     }
-
-//     // Update property with project reference
-//     property.projectId = project._id;
-
-//     // Save both documents
-//     await Promise.all([
-//       project.save(),
-//       property.save()
-//     ]);
-
-//     console.log('Successfully connected property to project');
-
-//     res.json({
-//       success: true,
-//       message: 'Property connected successfully',
-//       data: {
-//         projectId: project._id,
-//         propertyId: property.post_id,
-//         statistics: project.statistics
-//       }
-//     });
-
-//   } catch (error) {
-//     console.error('Error connecting property to project:', error);
-//     res.status(500).json({ 
-//       error: 'Failed to connect property to project',
-//       details: error.message 
-//     });
-//   }
-// });
-
-
-
 app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
   try {
     const { projectId, propertyId } = req.params;
     console.log('Connecting property:', propertyId, 'to project:', projectId);
 
-    // Find project and property concurrently
-    const [project, property] = await Promise.all([
-      Project.findById(projectId),
-      Property.findOne({ post_id: propertyId })
-    ]);
+    // Find project using projectId and property using post_id
+    const project = await Project.findById(projectId);
+    const property = await Property.findOne({ post_id: propertyId });
 
-    // Validate existence of both project and property
     if (!project) {
       console.log('Project not found:', projectId);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found' 
-      });
+      return res.status(404).json({ error: 'Project not found' });
     }
     if (!property) {
       console.log('Property not found:', propertyId);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Property not found' 
-      });
+      return res.status(404).json({ error: 'Property not found' });
     }
 
-    // Check if property is already connected to this project
-    if (property.project && property.project.toString() === projectId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Property is already connected to this project'
-      });
+    // Check if property is already connected
+    if (project.connectedProperties.includes(property._id)) {
+      return res.status(400).json({ error: 'Property is already connected to this project' });
     }
 
-    // Start a transaction to ensure data consistency
-    const session = await mongoose.startSession();
-    await session.withTransaction(async () => {
-      // Update project's connected properties array
-      if (!project.connectedProperties.includes(property._id)) {
-        project.connectedProperties.push(property._id);
-        project.statistics = project.statistics || {};
-        project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
-        if (property.available) {
-          project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
-        }
-      }
+    // Update project's connected properties array with the property's _id
+    project.connectedProperties.push(property._id);
+    
+    // Update project statistics
+    project.statistics = project.statistics || {};
+    project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
+    if (property.available) {
+      project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
+    }
 
-      // Update property with project reference and add audit log
-      property.project = project._id;
-      property.projectPhase = req.body.phase || null; // Optional phase assignment
-      property.lastUpdated = new Date();
-      property.updateHistory = property.updateHistory || [];
-      property.updateHistory.push({
-        action: 'CONNECTED_TO_PROJECT',
-        timestamp: new Date(),
-        projectId: project._id,
-        userId: req.user?.id || 'system'
-      });
+    // Update property with project reference
+    property.projectId = project._id;
 
-      // Save both documents
-      await Promise.all([
-        project.save({ session }),
-        property.save({ session })
-      ]);
-    });
+    // Save both documents
+    await Promise.all([
+      project.save(),
+      property.save()
+    ]);
 
-    await session.endSession();
-
-    // Log successful connection
-    console.log('Successfully connected property to project:', {
-      propertyId: property.post_id,
-      projectId: project._id,
-      statistics: project.statistics
-    });
+    console.log('Successfully connected property to project');
 
     res.json({
       success: true,
       message: 'Property connected successfully',
       data: {
-        propertyId: property.post_id,
         projectId: project._id,
-        projectName: project.name,
+        propertyId: property.post_id,
         statistics: project.statistics
       }
     });
 
   } catch (error) {
     console.error('Error connecting property to project:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to connect property to project',
-      error: error.message
+    res.status(500).json({ 
+      error: 'Failed to connect property to project',
+      details: error.message 
     });
   }
 });

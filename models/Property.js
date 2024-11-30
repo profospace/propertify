@@ -3,8 +3,8 @@ const mongoose = require('mongoose');
 const propertySchema = new mongoose.Schema({
   post_id: String,
   type_id: String,
-  user_id:String,
-  building_id:String,
+  user_id: String,
+  building_id: String,
   type_name: String,
   user_name: String,
   user_image: String,
@@ -12,36 +12,57 @@ const propertySchema = new mongoose.Schema({
   post_description: String,
   phone: String,
   address: String,
-  floor:String,
-  agreement:String,
-  priceUnit:String,
-  areaUnit:String,
-  usp:[String],
-  ownerName:String,
-  contactList:[Number],
+  floor: String,
+  agreement: String,
+  priceUnit: String,
+  areaUnit: String,
+  usp: [String],
+  ownerName: String,
+  contactList: [Number],
   latitude: Number,
   longitude: Number,
   purpose: String,
   bedrooms: Number,
   bathrooms: Number,
+  
+  // Enhanced relationship fields
   builder: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Builder'
-},
-building: {
+  },
+  building: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Building'
-},
-project: {
+  },
+  project: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project'
-},
-  location: {
-    type: { type: String, enum: ['Point'], required: false },
-    coordinates: { type: [Number], required: false } // Format: [longitude, latitude]
   },
+  
+  // Project-specific fields
+  projectPhase: {
+    type: String,
+    default: null
+  },
+  floorPlanId: {
+    type: String,
+    default: null
+  },
+  
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: false
+    },
+    coordinates: {
+      type: [Number],
+      required: false
+    }
+  },
+  
   area: String,
-  anyConstraint:[Number],
+  anyConstraint: [Number],
   furnishing: String,
   amenities: [String],
   price: Number,
@@ -66,7 +87,8 @@ project: {
   location_advantage: [String],
   project_details: String,
   official_brochure: String,
-  // Fields based on the images
+  
+  // Property specific fields
   pricePerSqFt: Number,
   estimatedEMI: Number,
   reraStatus: String,
@@ -88,8 +110,7 @@ project: {
   waterSource: [String],
   powerBackup: String,
   petFriendly: Boolean,
-
-  // New fields based on additional lists (as string arrays)
+  
   propertyTypes: [String],
   propertyFeatures: [String],
   viewTypes: [String],
@@ -104,5 +125,18 @@ project: {
   investmentStrategies: [String]
 }, { timestamps: true });
 
+// Indexes
 propertySchema.index({ location: '2dsphere' });
+propertySchema.index({ project: 1 });
+propertySchema.index({ building: 1 });
+propertySchema.index({ builder: 1 });
+
+// Populate references when finding properties
+propertySchema.pre('find', function(next) {
+  this.populate('project', 'projectId name type status')
+      .populate('building', 'buildingId name')
+      .populate('builder', 'name');
+  next();
+});
+
 module.exports = mongoose.model('Property', propertySchema);
