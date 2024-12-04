@@ -1742,6 +1742,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
   try {
     const { listName, optionId } = req.params;
     const updatedOption = req.body;
+    console.log(req.body)
 
     // Validate inputs
     if (!mongoose.Types.ObjectId.isValid(optionId)) {
@@ -1753,6 +1754,27 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
       listName: listName,
       "options._id": optionId
     });
+
+    // Construct the update object dynamically
+    const updateQuery = {
+      $set: {
+        "options.$": updatedOption, // Always update the matched option
+      },
+    };
+
+    // Conditionally add `categoryType` to the update object if it exists in `updatedOption`
+    if (updatedOption.categoryType) {
+      updateQuery.$set.categoryType = updatedOption.categoryType;
+    }
+
+    // Use the `updateQuery` in your `findOneAndUpdate` operation
+    const updatedList = await ListOptions.findOneAndUpdate(
+      {
+        listName: listName,
+        "options._id": optionId,
+      },
+      updateQuery
+    );
 
     if (!list) {
       return res.status(404).json({ message: "List or option not found" });
@@ -1768,7 +1790,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
         $set: {
           "options.$": {
             _id: optionId,  // Preserve the original _id
-            categoryType: updatedOption.categoryType,
+            // categoryType: updatedOption.categoryType,
             imagelink: updatedOption.imagelink,
             textview: updatedOption.textview,
             link: updatedOption.link
