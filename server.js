@@ -1738,71 +1738,166 @@ app.put('/api/list-options/:listName/update-details', async (req, res) => {
 });
 
 // Updated API endpoint
-app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+// app.put('/api/list-options/:listName', async (req, res) => {
+//   try {
+//     const { listName } = req.params;
+//     const {categoryType} = req.body;
+
+//     // Find the document first to verify it exists
+//     const res = await ListOptions.findOneAndUpdate(
+//       {listName},
+//       {
+//         categoryType: categoryType
+//       }
+//     );
+
+//     console.log("res:", res)
+
+//     return res.status(200).json({
+//       message: "Option updated successfully",
+//     });
+
+
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: "Error updating option",
+//       error: error.message
+//     });
+//   }
+// });
+
+app.put('/api/list-options/:listName', async (req, res) => {
   try {
-    const { listName, optionId } = req.params;
-    const updatedOption = req.body;
+    const { listName } = req.params;
+    const { categoryType } = req.body;
 
-    // Validate inputs
-    if (!mongoose.Types.ObjectId.isValid(optionId)) {
-      return res.status(400).json({ message: "Invalid option ID format" });
-    }
-
-    // Find the document first to verify it exists
-    const list = await ListOptions.findOne({
-      listName: listName,
-      "options._id": optionId
-    });
-
-    if (!list) {
-      return res.status(404).json({ message: "List or option not found" });
-    }
-
-    // Update while preserving the _id
-    const result = await ListOptions.findOneAndUpdate(
-      {
-        listName: listName,
-        "options._id": optionId
-      },
-      {
-        $set: {
-          "options.$": {
-            _id: optionId,  // Preserve the original _id
-            imagelink: updatedOption.imagelink,
-            textview: updatedOption.textview,
-            link: updatedOption.link
-          }
-        }
-      },
-      {
-        new: true,          // Return updated document
-        runValidators: true // Run schema validators
-      }
+    // Find the document and update it
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName },
+      { $set: { categoryType: categoryType } },
+      { new: true, runValidators: true }
     );
 
-    // Double-check the update was successful
-    if (!result) {
-      return res.status(404).json({ message: "Update failed" });
+    console.log("Updated List:", updatedList);
+
+    if (!updatedList) {
+      return res.status(404).json({ message: "List not found" });
     }
 
-    // Find the updated option in the result
-    const updatedDoc = result.options.find(opt => opt._id.toString() === optionId);
-
-    res.json({
+    return res.status(200).json({
       message: "Option updated successfully",
-      updatedOption: updatedDoc
     });
 
   } catch (error) {
     console.error('Update error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error updating option",
       error: error.message
     });
   }
 });
 
+/* changing Updated API endPoint */
+// app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+//   try {
+//     const { listName, optionId } = req.params;
+//     const updatedOption = req.body;
+
+//     console.log('Incoming update:', updatedOption);
+
+//     // Validate the option ID
+//     if (!mongoose.Types.ObjectId.isValid(optionId)) {
+//       return res.status(400).json({ message: 'Invalid option ID format' });
+//     }
+
+//     // Validate updatedOption structure
+//     const { imagelink, textview, link, categoryType } = updatedOption;
+//     if (!imagelink || !textview || !link) {
+//       return res.status(400).json({ message: 'Missing required fields (imagelink, textview, link)' });
+//     }
+
+//     // Construct update query dynamically
+//     const updateQuery = {
+//       $set: {
+//         "options.$.imagelink": imagelink,
+//         "options.$.textview": textview,
+//         "options.$.link": link,
+//       },
+//     };
+//     console.log("updateQuery:", updateQuery)
+
+//     // Include categoryType if provided
+//     if (categoryType) {
+//       updateQuery.$set.categoryType = categoryType;
+//     }
+
+//     // Perform the update operation
+//     const result = await ListOptions.findOneAndUpdate(
+//       {
+//         listName: listName,
+//         "options._id": optionId, // Match listName and option ID
+//       },
+//       updateQuery,
+//       {
+//         new: true, // Return the updated document
+//         runValidators: true, // Validate the updated fields
+//       }
+//     );
+//     console.log("result : ", result)
+//     // Handle case where no document was updated
+//     if (!result) {
+//       return res.status(404).json({ message: 'List or option not found' });
+//     }
+
+//     // Find the updated option
+//     const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
+//     console.log("updatedDoc", updatedDoc)
+
+//     res.status(200).json({
+//       message: 'Option updated successfully',
+//       updatedOption: updatedDoc,
+//     });
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: 'Error updating option',
+//       error: error.message,
+//     });
+//   }
+// });
+
 // Helper function to verify an option exists
+
+/* Adding category End-Point */
+app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+  try {
+    const { listName, optionId } = req.params; 
+    const categoryType = req.body;
+
+    console.log("body: " , req.body)
+    const result = await ListOptions.findOneAndUpdate(
+      {
+        listName: listName,
+        "options._id": optionId
+      },{
+        categoryType
+      }
+    )
+    console.log("result",result)
+    // Return the updated document
+    res.status(201).json({
+      message: "categorytype updated Successfully"})
+    
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({
+      message: 'Error updating list',
+      error: error.message,
+    });
+  }
+});
+
 async function verifyOptionExists(listName, optionId) {
   const count = await ListOptions.countDocuments({
     listName: listName,
@@ -1816,7 +1911,7 @@ async function verifyOptionExists(listName, optionId) {
 app.get('/api/list-options', async (req, res) => {
   try {
     const options = await ListOptions.find({});
-    // console.log(options)
+    console.log(options)
     res.json(options);
   } catch (error) {
     console.error('Error fetching list options:', error);
@@ -2164,6 +2259,7 @@ app.get('/api/list-options/:listName', async (req, res) => {
 // Create a new list option
 app.post('/api/list-options', async (req, res) => {
   try {
+    console.log(req.body)
     const newListOption = new ListOptions(req.body);
     const savedListOption = await newListOption.save();
     res.status(201).json(savedListOption);
@@ -2176,6 +2272,7 @@ app.post('/api/list-options', async (req, res) => {
 // Update an existing list option
 app.put('/api/list-options/:listName', async (req, res) => {
   try {
+    console.log(req.body)
     const updatedListOption = await ListOptions.findOneAndUpdate(
       { listName: req.params.listName },
       req.body,
