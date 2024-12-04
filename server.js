@@ -2196,7 +2196,7 @@ app.put('/api/properties/:id', async (req, res) => {
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
     console.log("body",req.body)
-    const { listName, options } = req.body;
+    const { listName, categoryType, title, headerImage ,options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2219,12 +2219,13 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, options });
+      const newListOption = new ListOptions({ listName, categoryType,title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
         list: newListOption
       });
+      console.log("newListOption", newListOption)
     }
   } catch (error) {
     console.error('Error adding/updating list:', error);
