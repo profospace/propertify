@@ -1852,6 +1852,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
         "options.$.link": link,
       },
     };
+    console.log("updateQuery:", updateQuery)
 
     // Include categoryType if provided
     if (categoryType) {
@@ -1870,7 +1871,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
         runValidators: true, // Validate the updated fields
       }
     );
-
+    console.log("result : ", result)
     // Handle case where no document was updated
     if (!result) {
       return res.status(404).json({ message: 'List or option not found' });
@@ -1878,6 +1879,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
 
     // Find the updated option
     const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
+    console.log("updatedDoc", updatedDoc)
 
     res.status(200).json({
       message: 'Option updated successfully',
