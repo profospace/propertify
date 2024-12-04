@@ -1816,6 +1816,7 @@ async function verifyOptionExists(listName, optionId) {
 app.get('/api/list-options', async (req, res) => {
   try {
     const options = await ListOptions.find({});
+    // console.log(options)
     res.json(options);
   } catch (error) {
     console.error('Error fetching list options:', error);
@@ -2099,6 +2100,7 @@ app.put('/api/properties/:id', async (req, res) => {
 // API to add a complete list with options
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
+    console.log("body",req.body)
     const { listName, options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
