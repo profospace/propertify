@@ -1738,89 +1738,156 @@ app.put('/api/list-options/:listName/update-details', async (req, res) => {
 });
 
 // Updated API endpoint
+// app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+//   try {
+//     const { listName, optionId } = req.params;
+//     const updatedOption = req.body;
+//     console.log(req.body)
+
+//     // Validate inputs
+//     if (!mongoose.Types.ObjectId.isValid(optionId)) {
+//       return res.status(400).json({ message: "Invalid option ID format" });
+//     }
+
+//     // Find the document first to verify it exists
+//     const list = await ListOptions.findOne({
+//       listName: listName,
+//       "options._id": optionId
+//     });
+
+//     // Construct the update object dynamically
+//     const updateQuery = {
+//       $set: {
+//         "options.$": updatedOption, // Always update the matched option
+//       },
+//     };
+
+//     // Conditionally add `categoryType` to the update object if it exists in `updatedOption`
+//     if (updatedOption.categoryType) {
+//       updateQuery.$set.categoryType = updatedOption.categoryType;
+//     }
+
+//     // Use the `updateQuery` in your `findOneAndUpdate` operation
+//     const updatedList = await ListOptions.findOneAndUpdate(
+//       {
+//         listName: listName,
+//         "options._id": optionId,
+//       },
+//       updateQuery
+//     );
+
+//     if (!list) {
+//       return res.status(404).json({ message: "List or option not found" });
+//     }
+
+//     // Update while preserving the _id
+//     const result = await ListOptions.findOneAndUpdate(
+//       {
+//         listName: listName,
+//         "options._id": optionId
+//       },
+//       {
+//         $set: {
+//           "options.$": {
+//             _id: optionId,  // Preserve the original _id
+//             // categoryType: updatedOption.categoryType,
+//             imagelink: updatedOption.imagelink,
+//             textview: updatedOption.textview,
+//             link: updatedOption.link
+//           }
+//         }
+//       },
+//       {
+//         new: true,          // Return updated document
+//         runValidators: true // Run schema validators
+//       }
+//     );
+
+//     // Double-check the update was successful
+//     if (!result) {
+//       return res.status(404).json({ message: "Update failed" });
+//     }
+
+//     // Find the updated option in the result
+//     const updatedDoc = result.options.find(opt => opt._id.toString() === optionId);
+
+//     res.json({
+//       message: "Option updated successfully",
+//       updatedOption: updatedDoc
+//     });
+
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: "Error updating option",
+//       error: error.message
+//     });
+//   }
+// });
+
+/* changing Updated API endPoint */
 app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
   try {
     const { listName, optionId } = req.params;
     const updatedOption = req.body;
-    console.log(req.body)
 
-    // Validate inputs
+    console.log('Incoming update:', updatedOption);
+
+    // Validate the option ID
     if (!mongoose.Types.ObjectId.isValid(optionId)) {
-      return res.status(400).json({ message: "Invalid option ID format" });
+      return res.status(400).json({ message: 'Invalid option ID format' });
     }
 
-    // Find the document first to verify it exists
-    const list = await ListOptions.findOne({
-      listName: listName,
-      "options._id": optionId
-    });
+    // Validate updatedOption structure
+    const { imagelink, textview, link, categoryType } = updatedOption;
+    if (!imagelink || !textview || !link) {
+      return res.status(400).json({ message: 'Missing required fields (imagelink, textview, link)' });
+    }
 
-    // Construct the update object dynamically
+    // Construct update query dynamically
     const updateQuery = {
       $set: {
-        "options.$": updatedOption, // Always update the matched option
+        "options.$.imagelink": imagelink,
+        "options.$.textview": textview,
+        "options.$.link": link,
       },
     };
 
-    // Conditionally add `categoryType` to the update object if it exists in `updatedOption`
-    if (updatedOption.categoryType) {
-      updateQuery.$set.categoryType = updatedOption.categoryType;
+    // Include categoryType if provided
+    if (categoryType) {
+      updateQuery.$set.categoryType = categoryType;
     }
 
-    // Use the `updateQuery` in your `findOneAndUpdate` operation
-    const updatedList = await ListOptions.findOneAndUpdate(
-      {
-        listName: listName,
-        "options._id": optionId,
-      },
-      updateQuery
-    );
-
-    if (!list) {
-      return res.status(404).json({ message: "List or option not found" });
-    }
-
-    // Update while preserving the _id
+    // Perform the update operation
     const result = await ListOptions.findOneAndUpdate(
       {
         listName: listName,
-        "options._id": optionId
+        "options._id": optionId, // Match listName and option ID
       },
+      updateQuery,
       {
-        $set: {
-          "options.$": {
-            _id: optionId,  // Preserve the original _id
-            // categoryType: updatedOption.categoryType,
-            imagelink: updatedOption.imagelink,
-            textview: updatedOption.textview,
-            link: updatedOption.link
-          }
-        }
-      },
-      {
-        new: true,          // Return updated document
-        runValidators: true // Run schema validators
+        new: true, // Return the updated document
+        runValidators: true, // Validate the updated fields
       }
     );
 
-    // Double-check the update was successful
+    // Handle case where no document was updated
     if (!result) {
-      return res.status(404).json({ message: "Update failed" });
+      return res.status(404).json({ message: 'List or option not found' });
     }
 
-    // Find the updated option in the result
-    const updatedDoc = result.options.find(opt => opt._id.toString() === optionId);
+    // Find the updated option
+    const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
 
-    res.json({
-      message: "Option updated successfully",
-      updatedOption: updatedDoc
+    res.status(200).json({
+      message: 'Option updated successfully',
+      updatedOption: updatedDoc,
     });
-
   } catch (error) {
     console.error('Update error:', error);
     res.status(500).json({
-      message: "Error updating option",
-      error: error.message
+      message: 'Error updating option',
+      error: error.message,
     });
   }
 });
