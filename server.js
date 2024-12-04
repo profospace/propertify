@@ -1768,6 +1768,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
         $set: {
           "options.$": {
             _id: optionId,  // Preserve the original _id
+            categoryType: updatedOption.categoryType,
             imagelink: updatedOption.imagelink,
             textview: updatedOption.textview,
             link: updatedOption.link
@@ -1816,7 +1817,7 @@ async function verifyOptionExists(listName, optionId) {
 app.get('/api/list-options', async (req, res) => {
   try {
     const options = await ListOptions.find({});
-    // console.log(options)
+    console.log(options)
     res.json(options);
   } catch (error) {
     console.error('Error fetching list options:', error);
@@ -2164,6 +2165,7 @@ app.get('/api/list-options/:listName', async (req, res) => {
 // Create a new list option
 app.post('/api/list-options', async (req, res) => {
   try {
+    console.log(req.body)
     const newListOption = new ListOptions(req.body);
     const savedListOption = await newListOption.save();
     res.status(201).json(savedListOption);
@@ -2176,6 +2178,7 @@ app.post('/api/list-options', async (req, res) => {
 // Update an existing list option
 app.put('/api/list-options/:listName', async (req, res) => {
   try {
+    console.log(req.body)
     const updatedListOption = await ListOptions.findOneAndUpdate(
       { listName: req.params.listName },
       req.body,
