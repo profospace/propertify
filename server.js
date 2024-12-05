@@ -1946,8 +1946,10 @@ app.post('/api/upload/property', upload.fields([
   { name: 'floor_plan_image', maxCount: 1 },
   { name: 'galleryList', maxCount: 10 }
 ]), async (req, res) => {
+  console.log("body :::::",req.body )
   try {
     const propertyData = JSON.parse(req.body.data || '{}');
+    const negotiation = req.body.negotiation === 'true'; 
     const uploadedImages = [];
 
     // Upload post image to S3
@@ -1998,6 +2000,9 @@ app.post('/api/upload/property', upload.fields([
     }
 
 
+    // Add negotiation field to property data
+    propertyData.negotiation = negotiation;
+    console.log("propertyData", propertyData)
     // Save the property data to MongoDB
     const property = new Property(propertyData);
     await property.save();
