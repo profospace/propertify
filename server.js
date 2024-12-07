@@ -4527,6 +4527,76 @@ app.delete('/api/history', authenticateToken, async (req, res) => {
 });
 
 
+app.post('/api/test/property-view-notification', async (req, res) => {
+  try {
+      const { propertyId } = req.body;
+      const testViewerInfo = {
+          viewerId: '123test',
+          viewerName: 'Test User',
+          viewerEmail: 'test@example.com',
+          viewerPhone: '1234567890',
+          viewerVerificationStatus: {
+              phone: true,
+              email: true
+          },
+          city: 'Test City',
+          region: 'Test Region',
+          country: 'Test Country',
+          timestamp: new Date()
+      };
+
+      console.log('Starting notification test for property:', propertyId);
+
+      if (!propertyId) {
+          return res.status(400).json({
+              success: false,
+              message: 'propertyId is required'
+          });
+      }
+
+      // Check if property exists
+      const property = await Property.findOne({ post_id: propertyId });
+      if (!property) {
+          return res.status(404).json({
+              success: false,
+              message: 'Property not found'
+          });
+      }
+
+      console.log('Property found:', {
+          id: property.post_id,
+          title: property.post_title,
+          owner: property.user_id
+      });
+
+      // Initialize notification service
+      const notificationService = new PropertyViewNotificationService();
+      
+      // Call the service
+      await notificationService.handlePropertyView(propertyId, testViewerInfo);
+
+      res.json({
+          success: true,
+          message: 'Property view notification test initiated',
+          details: {
+              propertyId,
+              viewerInfo: testViewerInfo,
+              timestamp: new Date()
+          }
+      });
+
+  } catch (error) {
+      console.error('Property notification test failed:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to send notification',
+          error: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+  }
+});
+
+
 
 // Initialize the server
 app.listen(PORT, () => {
