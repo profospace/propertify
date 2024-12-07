@@ -28,6 +28,8 @@ const { authenticateToken } = require('./middleware/auth');
 const propertyConnectionRouter = require('./routes/propertyConnections'); // Adjust path as needed
 app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
+const PropertyViewNotificationService = require('./PropertyViewNotificationService');
+const notificationService = new PropertyViewNotificationService();
 
 
 logger.configure({
@@ -1445,22 +1447,50 @@ app.get('/api/details/:id', async (req, res, next) => {
       // Continue with default location data
     }
 
-    // Track analytics event with error handling
-    // try {
-    //   const userId = "37827382" + propertyId;
-    //   await sendEventToAmplitude(userId, 'property_view', {
-    //     property_id: propertyId,
-    //     client_ip: cleanIpAddress(clientIp),
-    //     location: {
-    //       city: locationData.city,
-    //       region: locationData.region,
-    //       country: locationData.country
-    //     }
-    //   });
-    // } catch (analyticsError) {
-    //   console.warn('Analytics tracking failed:', analyticsError.message);
-    // }
+   // Send notification in background
+logger.info('Starting property view notification', {
+  propertyId,
+  viewer: {
+      id: viewer._id,
+      name: viewer.name,
+      email: viewer.email,
+      phone: viewer.phone,
+      verificationStatus: viewer.verificationStatus
+  }
+});
 
+notificationService.handlePropertyView(propertyId, {
+  viewerId: viewer._id,
+  viewerName: viewer.name,
+  viewerEmail: viewer.email,
+  viewerPhone: viewer.phone,
+  viewerVerificationStatus: viewer.verificationStatus,
+  city: req.clientLocation?.city,
+  region: req.clientLocation?.region,
+  country: req.clientLocation?.country,
+  timestamp: new Date()
+}).then(() => {
+  // Log success
+  logger.info('Property view notification processed successfully', {
+      propertyId,
+      viewerId: viewer._id,
+      timestamp: new Date()
+  });
+}).catch(error => {
+  // Log detailed error information
+  logger.error('Property view notification failed', {
+      propertyId,
+      viewerId: viewer._id,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      timestamp: new Date(),
+      location: {
+          city: req.clientLocation?.city,
+          region: req.clientLocation?.region,
+          country: req.clientLocation?.country
+      }
+  });
+});
     // Find property with timeout
     const property = await Promise.race([
       Property.findOne({ post_id: propertyId }),
