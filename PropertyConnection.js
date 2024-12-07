@@ -50,8 +50,7 @@ const PropertyConnection = mongoose.model('PropertyConnection', propertyConnecti
 // routes/propertyConnections.js
 const express = require('express');
 const router = express.Router();
-const PropertyConnection = require('../models/PropertyConnection');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('./middleware/auth');
 const mongoose = require('mongoose');
 
 // Create or update connection
@@ -261,4 +260,4 @@ router.get('/user', authenticateToken, async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = propertyConnection;
