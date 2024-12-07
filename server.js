@@ -25,7 +25,7 @@ const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
 const ListOptions = require('./ListOptions');
 const { authenticateToken } = require('./middleware/auth');
-const propertyConnectionRouter = require('./propertyConnection'); // Adjust path as needed
+const propertyConnectionRouter = require('./PropertyConnection'); // Adjust path as needed
 app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
 const PropertyViewNotificationService = require('./PropertyViewNotificationService');
