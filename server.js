@@ -4529,12 +4529,46 @@ app.delete('/api/history', authenticateToken, async (req, res) => {
 
 app.post('/api/test/property-view-notification', async (req, res) => {
   try {
-      const { propertyId } = req.body;
+      const { propertyId, testEmail } = req.body;
+      console.log('Starting notification test for property:', propertyId);
+
+      // Find the property
+      const property = await Property.findOne({ post_id: propertyId });
+      if (!property) {
+          return res.status(404).json({
+              success: false,
+              message: 'Property not found',
+              propertyId
+          });
+      }
+
+      // Check if property has an owner
+      if (!property.user_id) {
+          // Create a test user if none exists
+          const testUser = new User({
+              name: 'Test Owner',
+              email: testEmail || 'test@example.com',
+              phone: '1234567890',
+              loginType: 'TEST',
+              isPhoneVerified: true
+          });
+          await testUser.save();
+
+          // Assign the test user to the property
+          property.user_id = testUser._id;
+          await property.save();
+
+          console.log('Created test user and assigned to property:', {
+              userId: testUser._id,
+              propertyId: property.post_id
+          });
+      }
+
       const testViewerInfo = {
           viewerId: '123test',
           viewerName: 'Test User',
-          viewerEmail: 'test@example.com',
-          viewerPhone: '1234567890',
+          viewerEmail: 'viewer@example.com',
+          viewerPhone: '9876543210',
           viewerVerificationStatus: {
               phone: true,
               email: true
@@ -4544,30 +4578,6 @@ app.post('/api/test/property-view-notification', async (req, res) => {
           country: 'Test Country',
           timestamp: new Date()
       };
-
-      console.log('Starting notification test for property:', propertyId);
-
-      if (!propertyId) {
-          return res.status(400).json({
-              success: false,
-              message: 'propertyId is required'
-          });
-      }
-
-      // Check if property exists
-      const property = await Property.findOne({ post_id: propertyId });
-      if (!property) {
-          return res.status(404).json({
-              success: false,
-              message: 'Property not found'
-          });
-      }
-
-      console.log('Property found:', {
-          id: property.post_id,
-          title: property.post_title,
-          owner: property.user_id
-      });
 
       // Initialize notification service
       const notificationService = new PropertyViewNotificationService();
@@ -4580,6 +4590,10 @@ app.post('/api/test/property-view-notification', async (req, res) => {
           message: 'Property view notification test initiated',
           details: {
               propertyId,
+              property: {
+                  title: property.post_title,
+                  owner: property.user_id
+              },
               viewerInfo: testViewerInfo,
               timestamp: new Date()
           }
