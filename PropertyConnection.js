@@ -48,7 +48,6 @@ propertyConnectionSchema.pre('save', function(next) {
 const PropertyConnection = mongoose.model('PropertyConnection', propertyConnectionSchema);
 
 // routes/propertyConnections.js
-const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('./middleware/auth');
 const mongoose = require('mongoose');
