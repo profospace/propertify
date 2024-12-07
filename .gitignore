@@ -6,6 +6,7 @@ sendgrid.env
 
 # Log files
 *.log
+.history/
 
 # OS-specific files
 .DS_Store
