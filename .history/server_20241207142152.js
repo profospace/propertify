@@ -28,8 +28,6 @@ const { authenticateToken } = require('./middleware/auth');
 const propertyConnectionRouter = require('./routes/propertyConnections'); // Adjust path as needed
 app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
-const PropertyViewNotificationService = require('./PropertyViewNotificationService');
-const notificationService = new PropertyViewNotificationService();
 
 
 logger.configure({
