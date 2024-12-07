@@ -1419,7 +1419,6 @@ async function getLocationFromIP(ipAddress) {
   }
 }
 
-// Endpoint to fetch property details by ID ==============//
 app.get('/api/details/:id', async (req, res, next) => {
   try {
     console.log(`Fetching details for property ID: ${req.params.id}`);
@@ -1429,68 +1428,56 @@ app.get('/api/details/:id', async (req, res, next) => {
       throw new Error('Property ID is required');
     }
 
-    // Track client information with better error handling
-    const clientIp = req.ip || req.connection.remoteAddress;
-    let locationData = {
-      city: 'Unknown',
-      region: 'Unknown',
-      country: 'Unknown'
-    };
+    // Get viewer information first
+    const viewer = await User.findById(req.user?.id).select('name email phone verificationStatus');
+   
+   // Send notification in background
+    if (viewer) {
+      logger.info('Starting property view notification', {
+        propertyId,
+        viewer: {
+            id: viewer._id,
+            name: viewer.name,
+            email: viewer.email,
+            phone: viewer.phone,
+            verificationStatus: viewer.verificationStatus
+        }
+      });
 
-    try {
-      const locationResult = await getLocationFromIP(clientIp);
-      if (!locationResult.error) {
-        locationData = locationResult;
-      }
-    } catch (locationError) {
-      console.warn('Location lookup failed:', locationError.message);
-      // Continue with default location data
+      notificationService.handlePropertyView(propertyId, {
+        viewerId: viewer._id,
+        viewerName: viewer.name,
+        viewerEmail: viewer.email,
+        viewerPhone: viewer.phone,
+        viewerVerificationStatus: viewer.verificationStatus,
+        city: req.clientLocation?.city,
+        region: req.clientLocation?.region,
+        country: req.clientLocation?.country,
+        timestamp: new Date()
+      }).then(() => {
+        // Log success
+        logger.info('Property view notification processed successfully', {
+            propertyId,
+            viewerId: viewer._id,
+            timestamp: new Date()
+        });
+      }).catch(error => {
+        // Log detailed error information
+        logger.error('Property view notification failed', {
+            propertyId,
+            viewerId: viewer._id,
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date(),
+            location: {
+                city: req.clientLocation?.city,
+                region: req.clientLocation?.region,
+                country: req.clientLocation?.country
+            }
+        });
+      });
     }
 
-   // Send notification in background
-logger.info('Starting property view notification', {
-  propertyId,
-  viewer: {
-      id: viewer._id,
-      name: viewer.name,
-      email: viewer.email,
-      phone: viewer.phone,
-      verificationStatus: viewer.verificationStatus
-  }
-});
-
-notificationService.handlePropertyView(propertyId, {
-  viewerId: viewer._id,
-  viewerName: viewer.name,
-  viewerEmail: viewer.email,
-  viewerPhone: viewer.phone,
-  viewerVerificationStatus: viewer.verificationStatus,
-  city: req.clientLocation?.city,
-  region: req.clientLocation?.region,
-  country: req.clientLocation?.country,
-  timestamp: new Date()
-}).then(() => {
-  // Log success
-  logger.info('Property view notification processed successfully', {
-      propertyId,
-      viewerId: viewer._id,
-      timestamp: new Date()
-  });
-}).catch(error => {
-  // Log detailed error information
-  logger.error('Property view notification failed', {
-      propertyId,
-      viewerId: viewer._id,
-      errorMessage: error.message,
-      errorStack: error.stack,
-      timestamp: new Date(),
-      location: {
-          city: req.clientLocation?.city,
-          region: req.clientLocation?.region,
-          country: req.clientLocation?.country
-      }
-  });
-});
     // Find property with timeout
     const property = await Promise.race([
       Property.findOne({ post_id: propertyId }),
