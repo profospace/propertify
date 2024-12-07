@@ -25,8 +25,6 @@ const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
 const ListOptions = require('./ListOptions');
 const { authenticateToken } = require('./middleware/auth');
-const propertyConnectionRouter = require('./routes/propertyConnections'); // Adjust path as needed
-app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
 
 
@@ -4451,50 +4449,6 @@ app.post('/api/users/logout', authenticateToken, async (req, res) => {
           msg: 'Failed to logout',
           error: error.message
       });
-  }
-});
-
-
-// Track a visit
-app.post('/api/history', authenticateToken, async (req, res) => {
-  try {
-      const { itemType, itemId } = req.body;
-      await Visit.create({ userId: req.user.id, itemType, itemId });
-      res.json({ success: true });
-  } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Get visit history
-app.get('/api/history', authenticateToken, async (req, res) => {
-  try {
-      const { type, page = 1, limit = 20 } = req.query;
-      const query = { userId: req.user.id };
-      if (type) query.itemType = type;
-
-      const visits = await Visit.find(query)
-          .sort({ timestamp: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit);
-
-      res.json({ success: true, data: visits });
-  } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Clear history
-app.delete('/api/history', authenticateToken, async (req, res) => {
-  try {
-      const { type } = req.query;
-      const query = { userId: req.user.id };
-      if (type) query.itemType = type;
-
-      await Visit.deleteMany(query);
-      res.json({ success: true });
-  } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
   }
 });
 
