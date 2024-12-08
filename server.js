@@ -4202,6 +4202,7 @@ app.get('/api/home-feed', async (req, res) => {
       ...allListOptions.map(listOption => ({
         sectionType: 'optionList',
         title: listOption.title,
+        categoryType: listOption.categoryType, // Add this line
         headerImage: listOption.headerImage,
         subtitle: `Browse ${listOption.listName}`,
         backgroundColor: '#ffffff',
