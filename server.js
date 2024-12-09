@@ -25,7 +25,11 @@ const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
 const ListOptions = require('./ListOptions');
 const { authenticateToken } = require('./middleware/auth');
+const propertyConnectionRouter = require('./PropertyConnection'); // Adjust path as needed
+app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
+const PropertyViewNotificationService = require('./PropertyViewNotificationService');
+const notificationService = new PropertyViewNotificationService();
 
 
 logger.configure({
@@ -1420,7 +1424,6 @@ async function getLocationFromIP(ipAddress) {
   }
 }
 
-// Endpoint to fetch property details by ID ==============//
 app.get('/api/details/:id', async (req, res, next) => {
   try {
     console.log(`Fetching details for property ID: ${req.params.id}`);
@@ -1430,39 +1433,55 @@ app.get('/api/details/:id', async (req, res, next) => {
       throw new Error('Property ID is required');
     }
 
-    // Track client information with better error handling
-    const clientIp = req.ip || req.connection.remoteAddress;
-    let locationData = {
-      city: 'Unknown',
-      region: 'Unknown',
-      country: 'Unknown'
-    };
+    // Get viewer information first
+    const viewer = await User.findById(req.user?.id).select('name email phone verificationStatus');
+   
+   // Send notification in background
+    if (viewer) {
+      logger.info('Starting property view notification', {
+        propertyId,
+        viewer: {
+            id: viewer._id,
+            name: viewer.name,
+            email: viewer.email,
+            phone: viewer.phone,
+            verificationStatus: viewer.verificationStatus
+        }
+      });
 
-    try {
-      const locationResult = await getLocationFromIP(clientIp);
-      if (!locationResult.error) {
-        locationData = locationResult;
-      }
-    } catch (locationError) {
-      console.warn('Location lookup failed:', locationError.message);
-      // Continue with default location data
+      notificationService.handlePropertyView(propertyId, {
+        viewerId: viewer._id,
+        viewerName: viewer.name,
+        viewerEmail: viewer.email,
+        viewerPhone: viewer.phone,
+        viewerVerificationStatus: viewer.verificationStatus,
+        city: req.clientLocation?.city,
+        region: req.clientLocation?.region,
+        country: req.clientLocation?.country,
+        timestamp: new Date()
+      }).then(() => {
+        // Log success
+        logger.info('Property view notification processed successfully', {
+            propertyId,
+            viewerId: viewer._id,
+            timestamp: new Date()
+        });
+      }).catch(error => {
+        // Log detailed error information
+        logger.error('Property view notification failed', {
+            propertyId,
+            viewerId: viewer._id,
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date(),
+            location: {
+                city: req.clientLocation?.city,
+                region: req.clientLocation?.region,
+                country: req.clientLocation?.country
+            }
+        });
+      });
     }
-
-    // Track analytics event with error handling
-    // try {
-    //   const userId = "37827382" + propertyId;
-    //   await sendEventToAmplitude(userId, 'property_view', {
-    //     property_id: propertyId,
-    //     client_ip: cleanIpAddress(clientIp),
-    //     location: {
-    //       city: locationData.city,
-    //       region: locationData.region,
-    //       country: locationData.country
-    //     }
-    //   });
-    // } catch (analyticsError) {
-    //   console.warn('Analytics tracking failed:', analyticsError.message);
-    // }
 
     // Find property with timeout
     const property = await Promise.race([
@@ -4197,6 +4216,7 @@ app.get('/api/home-feed', async (req, res) => {
       ...allListOptions.map(listOption => ({
         sectionType: 'optionList',
         title: listOption.title,
+        categoryType: listOption.categoryType, // Add this line
         headerImage: listOption.headerImage,
         subtitle: `Browse ${listOption.listName}`,
         backgroundColor: '#ffffff',
@@ -4390,6 +4410,218 @@ app.post('/api/populate-kanpur-properties', async (req, res) => {
       message: 'Error populating properties',
       error: error.message
     });
+  }
+});
+
+
+app.delete('/api/users/delete-account', authenticateToken, async (req, res) => {
+  try {
+      const userId = req.user.id;
+
+      // Find and delete user
+      const user = await User.findByIdAndDelete(userId);
+      if (!user) {
+          return res.status(404).json({
+              status_code: '404',
+              success: 'false',
+              msg: 'User not found'
+          });
+      }
+
+      // Delete user's activity history
+      await Promise.all([
+          // Delete user's properties
+          Property.deleteMany({ user_id: userId }),
+          // Delete user's favorites
+          Property.updateMany(
+              { _id: { $in: user.favorites } },
+              { $pull: { favorited_by: userId } }
+          ),
+          // Delete user's recent views
+          Property.updateMany(
+              { _id: { $in: user.recent_views } },
+              { $pull: { viewed_by: userId } }
+          )
+      ]);
+
+      res.json({
+          status_code: '200',
+          success: 'true',
+          msg: 'Account deleted successfully'
+      });
+
+  } catch (error) {
+      console.error('Error deleting account:', error);
+      res.status(500).json({
+          status_code: '500',
+          success: 'false',
+          msg: 'Failed to delete account',
+          error: error.message
+      });
+  }
+});
+
+// Logout Endpoint (Optional - for token invalidation)
+app.post('/api/users/logout', authenticateToken, async (req, res) => {
+  try {
+      const userId = req.user.id;
+      
+      // Update last logout timestamp
+      await User.findByIdAndUpdate(userId, {
+          $set: {
+              lastLogout: new Date(),
+              activityLog: {
+                  $push: {
+                      action: 'LOGOUT',
+                      timestamp: new Date(),
+                      deviceInfo: req.headers['user-agent']
+                  }
+              }
+          }
+      });
+
+      res.json({
+          status_code: '200',
+          success: 'true',
+          msg: 'Logged out successfully'
+      });
+
+  } catch (error) {
+      console.error('Error logging out:', error);
+      res.status(500).json({
+          status_code: '500',
+          success: 'false',
+          msg: 'Failed to logout',
+          error: error.message
+      });
+  }
+});
+
+
+// Track a visit
+app.post('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { itemType, itemId } = req.body;
+      await Visit.create({ userId: req.user.id, itemType, itemId });
+      res.json({ success: true });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get visit history
+app.get('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { type, page = 1, limit = 20 } = req.query;
+      const query = { userId: req.user.id };
+      if (type) query.itemType = type;
+
+      const visits = await Visit.find(query)
+          .sort({ timestamp: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit);
+
+      res.json({ success: true, data: visits });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Clear history
+app.delete('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { type } = req.query;
+      const query = { userId: req.user.id };
+      if (type) query.itemType = type;
+
+      await Visit.deleteMany(query);
+      res.json({ success: true });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+app.post('/api/test/property-view-notification', async (req, res) => {
+  try {
+      const { propertyId, testEmail } = req.body;
+      console.log('Starting notification test for property:', propertyId);
+
+      // Find the property
+      const property = await Property.findOne({ post_id: propertyId });
+      if (!property) {
+          return res.status(404).json({
+              success: false,
+              message: 'Property not found',
+              propertyId
+          });
+      }
+
+      // Check if property has an owner
+      if (!property.user_id) {
+          // Create a test user if none exists
+          const testUser = new User({
+              name: 'Test Owner',
+              email: testEmail || 'test@example.com',
+              phone: '1234567890',
+              loginType: 'TEST',
+              isPhoneVerified: true
+          });
+          await testUser.save();
+
+          // Assign the test user to the property
+          property.user_id = testUser._id;
+          await property.save();
+
+          console.log('Created test user and assigned to property:', {
+              userId: testUser._id,
+              propertyId: property.post_id
+          });
+      }
+
+      const testViewerInfo = {
+          viewerId: '123test',
+          viewerName: 'Test User',
+          viewerEmail: 'viewer@example.com',
+          viewerPhone: '9876543210',
+          viewerVerificationStatus: {
+              phone: true,
+              email: true
+          },
+          city: 'Test City',
+          region: 'Test Region',
+          country: 'Test Country',
+          timestamp: new Date()
+      };
+
+      // Initialize notification service
+      const notificationService = new PropertyViewNotificationService();
+      
+      // Call the service
+      await notificationService.handlePropertyView(propertyId, testViewerInfo);
+
+      res.json({
+          success: true,
+          message: 'Property view notification test initiated',
+          details: {
+              propertyId,
+              property: {
+                  title: property.post_title,
+                  owner: property.user_id
+              },
+              viewerInfo: testViewerInfo,
+              timestamp: new Date()
+          }
+      });
+
+  } catch (error) {
+      console.error('Property notification test failed:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to send notification',
+          error: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
   }
 });
 
