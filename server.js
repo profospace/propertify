@@ -1155,6 +1155,50 @@ app.get('/api/update_properties', async (req, res) => {
 
 const LocalHomeFeed = require('./LocalHomeFeed');
 
+/* Get Home Feed By Location */
+app.get('/api/local-home-feed/by-location', async (req, res) => {
+  console.log("Query Params : ", req.query)
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+
+    if (geoResults.length === 0) {
+      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
+    }
+
+    const city = geoResults[0].city;
+
+    if (!city) {
+      return res.status(404).json({ message: 'City not found for given coordinates' });
+    }
+
+    // Find LocalHomeFeed documents that include the matching city
+    const feeds = await LocalHomeFeed.find({ cities: city });
+
+    if (feeds.length === 0) {
+      return res.status(404).json({ message: 'No local home feed found for the determined city' });
+    }
+
+    // Filter items to only include the matching city
+    const filteredFeeds = feeds.map(feed => ({
+      ...feed.toObject(),
+      items: feed.items.filter(item => item.cityName === city)
+    }));
+
+    res.json(filteredFeeds);
+  } catch (error) {
+    console.error('Error in local home feed by location:', error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
+
 // Create
 app.post('/api/local-home-feed', async (req, res) => {
   try {
@@ -1227,46 +1271,7 @@ const geocoder = NodeGeocoder({
   provider: 'openstreetmap'
 });
 
-app.get('/api/local-home-feed/by-location', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.query;
 
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
-
-    // Get the city name from coordinates
-    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
-
-    if (geoResults.length === 0) {
-      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
-    }
-
-    const city = geoResults[0].city;
-
-    if (!city) {
-      return res.status(404).json({ message: 'City not found for given coordinates' });
-    }
-
-    // Find LocalHomeFeed documents that include the matching city
-    const feeds = await LocalHomeFeed.find({ cities: city });
-
-    if (feeds.length === 0) {
-      return res.status(404).json({ message: 'No local home feed found for the determined city' });
-    }
-
-    // Filter items to only include the matching city
-    const filteredFeeds = feeds.map(feed => ({
-      ...feed.toObject(),
-      items: feed.items.filter(item => item.cityName === city)
-    }));
-
-    res.json(filteredFeeds);
-  } catch (error) {
-    console.error('Error in local home feed by location:', error);
-    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
-  }
-});
 
 
 
@@ -1818,104 +1823,104 @@ app.put('/api/list-options/:listName', async (req, res) => {
 });
 
 /* changing Updated API endPoint */
-// app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
-//   try {
-//     const { listName, optionId } = req.params;
-//     const updatedOption = req.body;
-
-//     console.log('Incoming update:', updatedOption);
-
-//     // Validate the option ID
-//     if (!mongoose.Types.ObjectId.isValid(optionId)) {
-//       return res.status(400).json({ message: 'Invalid option ID format' });
-//     }
-
-//     // Validate updatedOption structure
-//     const { imagelink, textview, link, categoryType } = updatedOption;
-//     if (!imagelink || !textview || !link) {
-//       return res.status(400).json({ message: 'Missing required fields (imagelink, textview, link)' });
-//     }
-
-//     // Construct update query dynamically
-//     const updateQuery = {
-//       $set: {
-//         "options.$.imagelink": imagelink,
-//         "options.$.textview": textview,
-//         "options.$.link": link,
-//       },
-//     };
-//     console.log("updateQuery:", updateQuery)
-
-//     // Include categoryType if provided
-//     if (categoryType) {
-//       updateQuery.$set.categoryType = categoryType;
-//     }
-
-//     // Perform the update operation
-//     const result = await ListOptions.findOneAndUpdate(
-//       {
-//         listName: listName,
-//         "options._id": optionId, // Match listName and option ID
-//       },
-//       updateQuery,
-//       {
-//         new: true, // Return the updated document
-//         runValidators: true, // Validate the updated fields
-//       }
-//     );
-//     console.log("result : ", result)
-//     // Handle case where no document was updated
-//     if (!result) {
-//       return res.status(404).json({ message: 'List or option not found' });
-//     }
-
-//     // Find the updated option
-//     const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
-//     console.log("updatedDoc", updatedDoc)
-
-//     res.status(200).json({
-//       message: 'Option updated successfully',
-//       updatedOption: updatedDoc,
-//     });
-//   } catch (error) {
-//     console.error('Update error:', error);
-//     res.status(500).json({
-//       message: 'Error updating option',
-//       error: error.message,
-//     });
-//   }
-// });
-
-// Helper function to verify an option exists
-
-/* Adding category End-Point */
 app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
   try {
-    const { listName, optionId } = req.params; 
-    const categoryType = req.body;
+    const { listName, optionId } = req.params;
+    const updatedOption = req.body;
 
-    console.log("body: " , req.body)
+    console.log('Incoming update:', updatedOption);
+
+    // Validate the option ID
+    if (!mongoose.Types.ObjectId.isValid(optionId)) {
+      return res.status(400).json({ message: 'Invalid option ID format' });
+    }
+
+    // Validate updatedOption structure
+    const { imagelink, textview, link, categoryType } = updatedOption;
+    if (!imagelink || !textview || !link) {
+      return res.status(400).json({ message: 'Missing required fields (imagelink, textview, link)' });
+    }
+
+    // Construct update query dynamically
+    const updateQuery = {
+      $set: {
+        "options.$.imagelink": imagelink,
+        "options.$.textview": textview,
+        "options.$.link": link,
+      },
+    };
+    console.log("updateQuery:", updateQuery)
+
+    // Include categoryType if provided
+    if (categoryType) {
+      updateQuery.$set.categoryType = categoryType;
+    }
+
+    // Perform the update operation
     const result = await ListOptions.findOneAndUpdate(
       {
         listName: listName,
-        "options._id": optionId
-      },{
-        categoryType
+        "options._id": optionId, // Match listName and option ID
+      },
+      updateQuery,
+      {
+        new: true, // Return the updated document
+        runValidators: true, // Validate the updated fields
       }
-    )
-    console.log("result",result)
-    // Return the updated document
-    res.status(201).json({
-      message: "categorytype updated Successfully"})
-    
+    );
+    console.log("result : ", result)
+    // Handle case where no document was updated
+    if (!result) {
+      return res.status(404).json({ message: 'List or option not found' });
+    }
+
+    // Find the updated option
+    const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
+    console.log("updatedDoc", updatedDoc)
+
+    res.status(200).json({
+      message: 'Option updated successfully',
+      updatedOption: updatedDoc,
+    });
   } catch (error) {
     console.error('Update error:', error);
     res.status(500).json({
-      message: 'Error updating list',
+      message: 'Error updating option',
       error: error.message,
     });
   }
 });
+
+// Helper function to verify an option exists
+
+/* Adding category End-Point */
+// app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+//   try {
+//     const { listName, optionId } = req.params; 
+//     const categoryType = req.body;
+
+//     console.log("body: " , req.body)
+//     const result = await ListOptions.findOneAndUpdate(
+//       {
+//         listName: listName,
+//         "options._id": optionId
+//       },{
+//         categoryType
+//       }
+//     )
+//     console.log("result",result)
+//     // Return the updated document
+//     res.status(201).json({
+//       message: "categorytype updated Successfully"})
+    
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: 'Error updating list',
+//       error: error.message,
+//     });
+//   }
+// });
 
 async function verifyOptionExists(listName, optionId) {
   const count = await ListOptions.countDocuments({
@@ -2043,7 +2048,7 @@ app.get('/api/properties/filter', async (req, res) => {
       priceMin, priceMax, type_name, sort, radius,
       furnishing, area, construction_status,
       carpetArea, superBuiltupArea, available, category,
-      region, possession, broker_status, purpose,
+      region, possession, broker_status, purpose,floor,
       // EMI filter parameters
       emiAmount, loanTenureYears
     } = req.query;
@@ -2062,12 +2067,21 @@ app.get('/api/properties/filter', async (req, res) => {
     // Existing filter logic
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
+    if (floor) filter.floor = { $gte: Number(floor) };
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
       if (priceMax) filter.price.$lte = Number(priceMax);
     }
-    if (type_name) filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    // if (type_name) filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    if (type_name) {
+      filter.type_name = {
+        $in: Array.isArray(type_name)
+          ? type_name.map((name) => new RegExp(`^${name}$`, 'i')) // Convert each type_name to a case-insensitive regex
+          : [new RegExp(`^${type_name}$`, 'i')], // Single value case-insensitive regex
+      };
+    }
+
     if (furnishing) filter.furnishing = furnishing;
     if (area) filter.area = { $gte: Number(area) };
     if (construction_status) filter.construction_status = construction_status;
@@ -2128,7 +2142,7 @@ app.get('/api/properties/filter', async (req, res) => {
       // Sort properties by affordability ratio (most affordable first)
       properties.sort((a, b) => a.affordabilityRatio - b.affordabilityRatio);
     }
-
+    
     res.json({
       totalProperties: properties.length,
       properties: properties
