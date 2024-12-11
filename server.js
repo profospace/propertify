@@ -990,36 +990,127 @@ app.delete('/api/colors/ads/:adId', async (req, res) => {
   }
 });
 
+// app.post('/api/colors/update', async (req, res) => {
+//   try {
+//     const updatedColorData = req.body;
+//     console.log('Received request body:', updatedColorData);
+
+//     const colorData = await ColorGradient.findOne({});
+//     if (colorData) {
+//       // Only update fields that are present in the request body
+//       Object.keys(updatedColorData).forEach(key => {
+//         if (key === 'ads') {
+//           // Check if ads array exists and has items
+//           if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
+//             // Check if any ad has a non-empty pagelink
+//             const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
+//             if (hasValidAds) {
+//               colorData.ads = updatedColorData.ads;
+//             }
+//           }
+//         } else {
+//           colorData[key] = updatedColorData[key];
+//         }
+//       });
+
+//       await colorData.save();
+
+//       // Fetch the updated document from MongoDB and print it
+//       const updatedDocument = await ColorGradient.findOne({});
+//       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
+//       res.status(200).json(updatedDocument);
+//     } else {
+//       res.status(400).json({ error: 'Color gradient data not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error updating color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+//   }
+// });
+
+
+// app.post('/api/colors/update', async (req, res) => {
+//   try {
+//     const updatedColorData = req.body;
+//     console.log('Received request body:', updatedColorData);
+
+//     const colorData = await ColorGradient.findOne({});
+//     if (colorData) {
+//       // Only update fields that are present in the request body
+//       Object.keys(updatedColorData).forEach(key => {
+//         if (key === 'ads') {
+//           // Check if ads array exists and has items
+          
+
+//           if(Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0 ){
+//             const newAds = updatedColorData.ads.filter(ad => ad.pagelink && ad.pagelink.trim() !== '')
+//             if(newAds.length > 0){
+//               colorData.ads = [...colorData.ads , ...newAds]
+//             }
+//           }
+                  
+
+//         } else {
+//           colorData[key] = updatedColorData[key];
+//         }
+//       });
+
+//       await colorData.save();
+
+//       // Fetch the updated document from MongoDB and print it
+//       const updatedDocument = await ColorGradient.findOne({});
+//       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
+//       res.status(200).json(updatedDocument);
+//     } else {
+//       res.status(400).json({ error: 'Color gradient data not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error updating color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+//   }
+// });
+
+// 'NA' logic
 app.post('/api/colors/update', async (req, res) => {
   try {
     const updatedColorData = req.body;
     console.log('Received request body:', updatedColorData);
 
     const colorData = await ColorGradient.findOne({});
+
     if (colorData) {
-      // Only update fields that are present in the request body
       Object.keys(updatedColorData).forEach(key => {
         if (key === 'ads') {
-          // Check if ads array exists and has items
+          // Handle 'ads' field separately
           if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
-            // Check if any ad has a non-empty pagelink
-            const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
-            if (hasValidAds) {
-              colorData.ads = updatedColorData.ads;
+            const newAds = updatedColorData.ads.filter(ad => ad.pagelink && ad.pagelink.trim() !== '');
+            if (newAds.length > 0) {
+              colorData.ads = [...colorData.ads, ...newAds];
             }
           }
+        } else if (typeof updatedColorData[key] === 'object' && updatedColorData[key] !== null) {
+          Object.keys(updatedColorData[key]).forEach(subKey => {
+            if (updatedColorData[key][subKey] !== 'NA') {
+              if (!colorData[key]) colorData[key] = {}; // Initialize if missing
+              colorData[key][subKey] = updatedColorData[key][subKey];
+            }
+          });
         } else {
-          colorData[key] = updatedColorData[key];
+          if (updatedColorData[key] !== 'NA') {
+            colorData[key] = updatedColorData[key];
+          }
         }
       });
 
       await colorData.save();
 
-      // Fetch the updated document from MongoDB and print it
+      // Fetch and return the updated document
       const updatedDocument = await ColorGradient.findOne({});
       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
 
-      res.status(200).json(colorData);
+      res.status(200).json(updatedDocument);
     } else {
       res.status(400).json({ error: 'Color gradient data not found' });
     }
@@ -1028,6 +1119,9 @@ app.post('/api/colors/update', async (req, res) => {
     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
   }
 });
+
+
+
 app.post('/api/colors/update-ads', async (req, res) => {
   try {
     const updatedAds = req.body.ads;
