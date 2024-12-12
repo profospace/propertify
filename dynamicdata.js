@@ -16,14 +16,24 @@ const adTypeSchema = new mongoose.Schema({
   fullscreen: Boolean
 }, { _id: false });
 
+// const adSchema = new mongoose.Schema({
+//   name: String,
+//   header: String,
+//   pagelink: String,
+//   imagelinks: [String],
+//   contact: [String],
+//   type: adTypeSchema
+// });
+
 const adSchema = new mongoose.Schema({
   name: String,
   header: String,
   pagelink: String,
   imagelinks: [String],
   contact: [String],
-  type: adTypeSchema
+  type: adTypeSchema,
 });
+
 
 const colorGradientSchema = new mongoose.Schema({
   header: {
