@@ -1270,7 +1270,7 @@ app.get('/api/colors', (req, res) => {
 
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect(process.env.mongodb_uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -1507,7 +1507,7 @@ const NodeGeocoder = require('node-geocoder');
 // });
 const geocoder = NodeGeocoder({
   provider: 'google',
-  apiKey: 'AIzaSyDRTXePRjHx-5L6AwhWeDPLxU0fgVZQB3g'
+  apiKey: process.env.google_api_key
 });
 
 
