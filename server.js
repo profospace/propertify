@@ -25,7 +25,12 @@ const OTP_URL = 'https://www.fast2sms.com/dev/bulkV2';
 const API_KEY = 'K6vUoBQk7gSJhVlp1tMnrPYuf2I4zeAN5FTGsHj3Z8ic9LWbDEGFPfTkcAzNQedrq6JR2mUg9h3vbV4Y';
 const ListOptions = require('./ListOptions');
 const { authenticateToken } = require('./middleware/auth');
+const propertyConnectionRouter = require('./PropertyConnection'); // Adjust path as needed
+app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
+const PropertyViewNotificationService = require('./PropertyViewNotificationService');
+const notificationService = new PropertyViewNotificationService();
+const Cities = require('./Cities');
 
 
 logger.configure({
@@ -986,36 +991,127 @@ app.delete('/api/colors/ads/:adId', async (req, res) => {
   }
 });
 
+// app.post('/api/colors/update', async (req, res) => {
+//   try {
+//     const updatedColorData = req.body;
+//     console.log('Received request body:', updatedColorData);
+
+//     const colorData = await ColorGradient.findOne({});
+//     if (colorData) {
+//       // Only update fields that are present in the request body
+//       Object.keys(updatedColorData).forEach(key => {
+//         if (key === 'ads') {
+//           // Check if ads array exists and has items
+//           if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
+//             // Check if any ad has a non-empty pagelink
+//             const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
+//             if (hasValidAds) {
+//               colorData.ads = updatedColorData.ads;
+//             }
+//           }
+//         } else {
+//           colorData[key] = updatedColorData[key];
+//         }
+//       });
+
+//       await colorData.save();
+
+//       // Fetch the updated document from MongoDB and print it
+//       const updatedDocument = await ColorGradient.findOne({});
+//       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
+//       res.status(200).json(updatedDocument);
+//     } else {
+//       res.status(400).json({ error: 'Color gradient data not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error updating color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+//   }
+// });
+
+
+// app.post('/api/colors/update', async (req, res) => {
+//   try {
+//     const updatedColorData = req.body;
+//     console.log('Received request body:', updatedColorData);
+
+//     const colorData = await ColorGradient.findOne({});
+//     if (colorData) {
+//       // Only update fields that are present in the request body
+//       Object.keys(updatedColorData).forEach(key => {
+//         if (key === 'ads') {
+//           // Check if ads array exists and has items
+          
+
+//           if(Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0 ){
+//             const newAds = updatedColorData.ads.filter(ad => ad.pagelink && ad.pagelink.trim() !== '')
+//             if(newAds.length > 0){
+//               colorData.ads = [...colorData.ads , ...newAds]
+//             }
+//           }
+                  
+
+//         } else {
+//           colorData[key] = updatedColorData[key];
+//         }
+//       });
+
+//       await colorData.save();
+
+//       // Fetch the updated document from MongoDB and print it
+//       const updatedDocument = await ColorGradient.findOne({});
+//       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
+
+//       res.status(200).json(updatedDocument);
+//     } else {
+//       res.status(400).json({ error: 'Color gradient data not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error updating color gradient data:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
+//   }
+// });
+
+// 'NA' logic
 app.post('/api/colors/update', async (req, res) => {
   try {
     const updatedColorData = req.body;
     console.log('Received request body:', updatedColorData);
 
     const colorData = await ColorGradient.findOne({});
+
     if (colorData) {
-      // Only update fields that are present in the request body
       Object.keys(updatedColorData).forEach(key => {
         if (key === 'ads') {
-          // Check if ads array exists and has items
+          // Handle 'ads' field separately
           if (Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0) {
-            // Check if any ad has a non-empty pagelink
-            const hasValidAds = updatedColorData.ads.some(ad => ad.pagelink && ad.pagelink.trim() !== '');
-            if (hasValidAds) {
-              colorData.ads = updatedColorData.ads;
+            const newAds = updatedColorData.ads.filter(ad => ad.pagelink && ad.pagelink.trim() !== '');
+            if (newAds.length > 0) {
+              colorData.ads = [...colorData.ads, ...newAds];
             }
           }
+        } else if (typeof updatedColorData[key] === 'object' && updatedColorData[key] !== null) {
+          Object.keys(updatedColorData[key]).forEach(subKey => {
+            if (updatedColorData[key][subKey] !== 'NA') {
+              if (!colorData[key]) colorData[key] = {}; // Initialize if missing
+              colorData[key][subKey] = updatedColorData[key][subKey];
+            }
+          });
         } else {
-          colorData[key] = updatedColorData[key];
+          if (updatedColorData[key] !== 'NA') {
+            colorData[key] = updatedColorData[key];
+          }
         }
       });
 
       await colorData.save();
 
-      // Fetch the updated document from MongoDB and print it
+      // Fetch and return the updated document
       const updatedDocument = await ColorGradient.findOne({});
       console.log('Updated ColorGradient document in MongoDB:', JSON.stringify(updatedDocument, null, 2));
 
-      res.status(200).json(colorData);
+      res.status(200).json(updatedDocument);
     } else {
       res.status(400).json({ error: 'Color gradient data not found' });
     }
@@ -1024,32 +1120,36 @@ app.post('/api/colors/update', async (req, res) => {
     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update color gradient data' });
   }
 });
+
+
+
 app.post('/api/colors/update-ads', async (req, res) => {
   try {
     const updatedAds = req.body.ads;
     console.log('Received updated ads:', updatedAds);
 
     const colorData = await ColorGradient.findOne({});
+    console.log("colorData", colorData)
     if (colorData) {
       // If colorData.ads doesn't exist, initialize it as an empty array
       if (!Array.isArray(colorData.ads)) {
         colorData.ads = [];
       }
 
-      updatedAds.forEach(updatedAd => {
-        const existingAdIndex = colorData.ads.findIndex(ad => ad.name === updatedAd.name);
+      const existingAdIndex = colorData.ads.findIndex(ad => ad._id.toString() === updatedAds.adId);
+
+      console.log("existingAdIndex", existingAdIndex)
 
         if (existingAdIndex !== -1) {
           // Update existing ad
           colorData.ads[existingAdIndex] = {
             ...colorData.ads[existingAdIndex],
-            ...updatedAd
+            ...updatedAds
           };
         } else {
           // Add new ad
-          colorData.ads.push(updatedAd);
+          colorData.ads.push(updatedAds);
         }
-      });
 
       await colorData.save();
       res.status(200).json(colorData);
@@ -1062,7 +1162,110 @@ app.post('/api/colors/update-ads', async (req, res) => {
   }
 });
 
+
+
+
+// app.post('/api/colors/update-ads', async (req, res) => {
+//   console.log("HHHHHWHWHHHWHWHWHWHWH")
+//   try {
+//     const updatedAd = req.body; // Directly access the single ad object
+
+//     // Validate that `updatedAd` contains the necessary properties
+//     if (!updatedAd || !updatedAd.name) {
+//       return res.status(400).json({ error: 'Invalid ad object: missing required properties' });
+//     }
+
+//     console.log('Received updated ad:', updatedAd);
+
+//     const colorData = await ColorGradient.findOne({});
+//     console.log(colorData);
+
+//     if (colorData) {
+//       // If colorData.ads doesn't exist, initialize it as an empty array
+//       if (!Array.isArray(colorData.ads)) {
+//         colorData.ads = [];
+//       }
+
+//       const existingAdIndex = colorData.ads.findIndex(ad => ad.adId === updatedAd.adId);
+
+//       console.log("existingAdIndex", existingAdIndex)
+//       if (existingAdIndex !== -1) {
+//         // Update existing ad
+//         colorData.ads[existingAdIndex] = {
+//           ...colorData.ads[existingAdIndex],
+//           ...updatedAd
+//         };
+//       } else {
+//         // Add new ad
+//         colorData.ads.push(updatedAd);
+//       }
+
+//       await colorData.save();
+//       res.status(200).json(colorData);
+//     } else {
+//       res.status(400).json({ error: 'Color gradient data not found' });
+//     }
+//   } catch (error) {
+//     console.error('Error updating ads:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update ad' });
+//   }
+// });
+
+
 // Define your API endpoint
+
+/* now serach / update using ID */
+// app.post('/api/colors/update-ads', async (req, res) => {
+//   console.log("HEHEHHEHHE")
+//   try {
+//     const updatedAds = req.body.ads;
+//     console.log('updateAds',updatedAds)
+//     // Validate the request body
+//     if (!Array.isArray(updatedAds) || !updatedAds.every(ad => ad.adId)) {
+//       return res.status(400).json({ error: 'Invalid ads data' });
+//     }
+    
+//     // Retrieve the color gradient data
+//     let colorData = await ColorGradient.findOne({});
+//     console.log("colorData", colorData)
+//     // Initialize colorData if it does not exist
+//     if (!colorData) {
+//       colorData = new ColorGradient({});
+//       console.log("colorData", colorData)
+//     } else if (!Array.isArray(colorData.ads)) {
+//       colorData.ads = [];
+//     }
+//     console.log("HEHEHHEHHE222")
+    
+//     // Update or add ads
+//     for (const updatedAd of updatedAds) {
+//       const existingAdIndex = colorData.ads.findIndex(ad => ad.adId === updatedAd.adId);
+//       console.log("existingAdIndex", existingAdIndex)
+      
+//       if (existingAdIndex !== -1) {
+//         // Update existing ad
+//         colorData.ads[existingAdIndex] = {
+//           ...colorData.ads[existingAdIndex],
+//           ...updatedAd
+//         };
+//       } else {
+//         // Add new ad
+//         colorData.ads.push(updatedAd);
+//       }
+//     }
+    
+//     console.log("HEHEHHEHHE333")
+//     // Save the updated color gradient data
+//     await colorData.save();
+
+//     res.status(200).json(colorData);
+//   } catch (error) {
+//     console.error('Error updating ads:', error);
+//     res.status(500).json({ status_code: '500', success: 'false', msg: 'Failed to update ads' });
+//   }
+// });
+
+
 app.get('/api/colors', (req, res) => {
   // Send the color gradient data JSON object
   res.json(colorGradientData);
@@ -1151,6 +1354,89 @@ app.get('/api/update_properties', async (req, res) => {
 
 const LocalHomeFeed = require('./LocalHomeFeed');
 
+/* Get Home Feed By Location */
+app.get('/api/local-home-feed/by-location', async (req, res) => {
+  console.log("Query Params : ", req.query)
+  try {
+    const { latitude, longitude } = req.query;
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    console.log("geoResults", geoResults)
+
+    if (geoResults.length === 0) {
+      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
+    }
+
+    const city = geoResults[0].city;
+
+    if (!city) {
+      return res.status(404).json({ message: 'City not found for given coordinates' });
+    }
+
+    // Find LocalHomeFeed documents that include the matching city
+    const feeds = await LocalHomeFeed.find({ cities: city });
+
+    if (feeds.length === 0) {
+      return res.status(404).json({ message: 'No local home feed found for the determined city' });
+    }
+
+    // Filter items to only include the matching city
+    const filteredFeeds = feeds.map(feed => ({
+      ...feed.toObject(),
+      items: feed.items.filter(item => item.cityName === city)
+    }));
+
+    res.json(filteredFeeds);
+  } catch (error) {
+    console.error('Error in local home feed by location:', error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
+/* Get Home Feed If Available In City  */
+const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
+
+app.get('/api/local-home-feed/location', async (req, res) => {
+  try {
+    console.log("Hehehe");
+    const { longitude, latitude } = req.query;
+    console.log(req.query);
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    const city = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
+
+    console.log("Detected city:", city);
+
+    if (!city) {
+      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
+    }
+
+    // Check if the city exists in dummyCities
+    const isCityAvailable = dummyCities.includes(city);
+    if (!isCityAvailable) {
+      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
+    }
+
+    // City is available
+    res.status(200).json({ message: `Welcome! We are available in ${city}` });
+  } catch (error) {
+    console.log("ERROR :", error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
+
+
 // Create
 app.post('/api/local-home-feed', async (req, res) => {
   try {
@@ -1219,50 +1505,15 @@ app.delete('/api/local-home-feed/:id', async (req, res) => {
 
 const NodeGeocoder = require('node-geocoder');
 
+// const geocoder = NodeGeocoder({
+//   provider: 'openstreetmap'
+// });
 const geocoder = NodeGeocoder({
-  provider: 'openstreetmap'
+  provider: 'google',
+  apiKey: 'AIzaSyDRTXePRjHx-5L6AwhWeDPLxU0fgVZQB3g'
 });
 
-app.get('/api/local-home-feed/by-location', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.query;
 
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
-
-    // Get the city name from coordinates
-    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
-
-    if (geoResults.length === 0) {
-      return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
-    }
-
-    const city = geoResults[0].city;
-
-    if (!city) {
-      return res.status(404).json({ message: 'City not found for given coordinates' });
-    }
-
-    // Find LocalHomeFeed documents that include the matching city
-    const feeds = await LocalHomeFeed.find({ cities: city });
-
-    if (feeds.length === 0) {
-      return res.status(404).json({ message: 'No local home feed found for the determined city' });
-    }
-
-    // Filter items to only include the matching city
-    const filteredFeeds = feeds.map(feed => ({
-      ...feed.toObject(),
-      items: feed.items.filter(item => item.cityName === city)
-    }));
-
-    res.json(filteredFeeds);
-  } catch (error) {
-    console.error('Error in local home feed by location:', error);
-    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
-  }
-});
 
 
 
@@ -1415,7 +1666,6 @@ async function getLocationFromIP(ipAddress) {
   }
 }
 
-// Endpoint to fetch property details by ID ==============//
 app.get('/api/details/:id', async (req, res, next) => {
   try {
     console.log(`Fetching details for property ID: ${req.params.id}`);
@@ -1425,39 +1675,55 @@ app.get('/api/details/:id', async (req, res, next) => {
       throw new Error('Property ID is required');
     }
 
-    // Track client information with better error handling
-    const clientIp = req.ip || req.connection.remoteAddress;
-    let locationData = {
-      city: 'Unknown',
-      region: 'Unknown',
-      country: 'Unknown'
-    };
+    // Get viewer information first
+    const viewer = await User.findById(req.user?.id).select('name email phone verificationStatus');
+   
+   // Send notification in background
+    if (viewer) {
+      logger.info('Starting property view notification', {
+        propertyId,
+        viewer: {
+            id: viewer._id,
+            name: viewer.name,
+            email: viewer.email,
+            phone: viewer.phone,
+            verificationStatus: viewer.verificationStatus
+        }
+      });
 
-    try {
-      const locationResult = await getLocationFromIP(clientIp);
-      if (!locationResult.error) {
-        locationData = locationResult;
-      }
-    } catch (locationError) {
-      console.warn('Location lookup failed:', locationError.message);
-      // Continue with default location data
+      notificationService.handlePropertyView(propertyId, {
+        viewerId: viewer._id,
+        viewerName: viewer.name,
+        viewerEmail: viewer.email,
+        viewerPhone: viewer.phone,
+        viewerVerificationStatus: viewer.verificationStatus,
+        city: req.clientLocation?.city,
+        region: req.clientLocation?.region,
+        country: req.clientLocation?.country,
+        timestamp: new Date()
+      }).then(() => {
+        // Log success
+        logger.info('Property view notification processed successfully', {
+            propertyId,
+            viewerId: viewer._id,
+            timestamp: new Date()
+        });
+      }).catch(error => {
+        // Log detailed error information
+        logger.error('Property view notification failed', {
+            propertyId,
+            viewerId: viewer._id,
+            errorMessage: error.message,
+            errorStack: error.stack,
+            timestamp: new Date(),
+            location: {
+                city: req.clientLocation?.city,
+                region: req.clientLocation?.region,
+                country: req.clientLocation?.country
+            }
+        });
+      });
     }
-
-    // Track analytics event with error handling
-    // try {
-    //   const userId = "37827382" + propertyId;
-    //   await sendEventToAmplitude(userId, 'property_view', {
-    //     property_id: propertyId,
-    //     client_ip: cleanIpAddress(clientIp),
-    //     location: {
-    //       city: locationData.city,
-    //       region: locationData.region,
-    //       country: locationData.country
-    //     }
-    //   });
-    // } catch (analyticsError) {
-    //   console.warn('Analytics tracking failed:', analyticsError.message);
-    // }
 
     // Find property with timeout
     const property = await Promise.race([
@@ -1738,71 +2004,166 @@ app.put('/api/list-options/:listName/update-details', async (req, res) => {
 });
 
 // Updated API endpoint
-app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+// app.put('/api/list-options/:listName', async (req, res) => {
+//   try {
+//     const { listName } = req.params;
+//     const {categoryType} = req.body;
+
+//     // Find the document first to verify it exists
+//     const res = await ListOptions.findOneAndUpdate(
+//       {listName},
+//       {
+//         categoryType: categoryType
+//       }
+//     );
+
+//     console.log("res:", res)
+
+//     return res.status(200).json({
+//       message: "Option updated successfully",
+//     });
+
+
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: "Error updating option",
+//       error: error.message
+//     });
+//   }
+// });
+
+app.put('/api/list-options/:listName', async (req, res) => {
   try {
-    const { listName, optionId } = req.params;
-    const updatedOption = req.body;
+    const { listName } = req.params;
+    const { categoryType } = req.body;
 
-    // Validate inputs
-    if (!mongoose.Types.ObjectId.isValid(optionId)) {
-      return res.status(400).json({ message: "Invalid option ID format" });
-    }
-
-    // Find the document first to verify it exists
-    const list = await ListOptions.findOne({
-      listName: listName,
-      "options._id": optionId
-    });
-
-    if (!list) {
-      return res.status(404).json({ message: "List or option not found" });
-    }
-
-    // Update while preserving the _id
-    const result = await ListOptions.findOneAndUpdate(
-      {
-        listName: listName,
-        "options._id": optionId
-      },
-      {
-        $set: {
-          "options.$": {
-            _id: optionId,  // Preserve the original _id
-            imagelink: updatedOption.imagelink,
-            textview: updatedOption.textview,
-            link: updatedOption.link
-          }
-        }
-      },
-      {
-        new: true,          // Return updated document
-        runValidators: true // Run schema validators
-      }
+    // Find the document and update it
+    const updatedList = await ListOptions.findOneAndUpdate(
+      { listName },
+      { $set: { categoryType: categoryType } },
+      { new: true, runValidators: true }
     );
 
-    // Double-check the update was successful
-    if (!result) {
-      return res.status(404).json({ message: "Update failed" });
+    console.log("Updated List:", updatedList);
+
+    if (!updatedList) {
+      return res.status(404).json({ message: "List not found" });
     }
 
-    // Find the updated option in the result
-    const updatedDoc = result.options.find(opt => opt._id.toString() === optionId);
-
-    res.json({
+    return res.status(200).json({
       message: "Option updated successfully",
-      updatedOption: updatedDoc
     });
 
   } catch (error) {
     console.error('Update error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Error updating option",
       error: error.message
     });
   }
 });
 
+/* changing Updated API endPoint */
+app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+  try {
+    const { listName, optionId } = req.params;
+    const updatedOption = req.body;
+
+    console.log('Incoming update:', updatedOption);
+
+    // Validate the option ID
+    if (!mongoose.Types.ObjectId.isValid(optionId)) {
+      return res.status(400).json({ message: 'Invalid option ID format' });
+    }
+
+    // Validate updatedOption structure
+    const { imagelink, textview, link, categoryType } = updatedOption;
+    if (!imagelink || !textview || !link) {
+      return res.status(400).json({ message: 'Missing required fields (imagelink, textview, link)' });
+    }
+
+    // Construct update query dynamically
+    const updateQuery = {
+      $set: {
+        "options.$.imagelink": imagelink,
+        "options.$.textview": textview,
+        "options.$.link": link,
+      },
+    };
+    console.log("updateQuery:", updateQuery)
+
+    // Include categoryType if provided
+    if (categoryType) {
+      updateQuery.$set.categoryType = categoryType;
+    }
+
+    // Perform the update operation
+    const result = await ListOptions.findOneAndUpdate(
+      {
+        listName: listName,
+        "options._id": optionId, // Match listName and option ID
+      },
+      updateQuery,
+      {
+        new: true, // Return the updated document
+        runValidators: true, // Validate the updated fields
+      }
+    );
+    console.log("result : ", result)
+    // Handle case where no document was updated
+    if (!result) {
+      return res.status(404).json({ message: 'List or option not found' });
+    }
+
+    // Find the updated option
+    const updatedDoc = result.options.find((opt) => opt._id.toString() === optionId);
+    console.log("updatedDoc", updatedDoc)
+
+    res.status(200).json({
+      message: 'Option updated successfully',
+      updatedOption: updatedDoc,
+    });
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({
+      message: 'Error updating option',
+      error: error.message,
+    });
+  }
+});
+
 // Helper function to verify an option exists
+
+/* Adding category End-Point */
+// app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) => {
+//   try {
+//     const { listName, optionId } = req.params; 
+//     const categoryType = req.body;
+
+//     console.log("body: " , req.body)
+//     const result = await ListOptions.findOneAndUpdate(
+//       {
+//         listName: listName,
+//         "options._id": optionId
+//       },{
+//         categoryType
+//       }
+//     )
+//     console.log("result",result)
+//     // Return the updated document
+//     res.status(201).json({
+//       message: "categorytype updated Successfully"})
+    
+//   } catch (error) {
+//     console.error('Update error:', error);
+//     res.status(500).json({
+//       message: 'Error updating list',
+//       error: error.message,
+//     });
+//   }
+// });
+
 async function verifyOptionExists(listName, optionId) {
   const count = await ListOptions.countDocuments({
     listName: listName,
@@ -1816,6 +2177,7 @@ async function verifyOptionExists(listName, optionId) {
 app.get('/api/list-options', async (req, res) => {
   try {
     const options = await ListOptions.find({});
+    console.log(options)
     res.json(options);
   } catch (error) {
     console.error('Error fetching list options:', error);
@@ -1850,8 +2212,10 @@ app.post('/api/upload/property', upload.fields([
   { name: 'floor_plan_image', maxCount: 1 },
   { name: 'galleryList', maxCount: 10 }
 ]), async (req, res) => {
+  console.log("body :::::",req.body )
   try {
     const propertyData = JSON.parse(req.body.data || '{}');
+    const negotiation = req.body.negotiation === 'true'; 
     const uploadedImages = [];
 
     // Upload post image to S3
@@ -1902,6 +2266,9 @@ app.post('/api/upload/property', upload.fields([
     }
 
 
+    // Add negotiation field to property data
+    propertyData.negotiation = negotiation;
+    console.log("propertyData", propertyData)
     // Save the property data to MongoDB
     const property = new Property(propertyData);
     await property.save();
@@ -1923,7 +2290,7 @@ app.get('/api/properties/filter', async (req, res) => {
       priceMin, priceMax, type_name, sort, radius,
       furnishing, area, construction_status,
       carpetArea, superBuiltupArea, available, category,
-      region, possession, broker_status, purpose,
+      region, possession, broker_status, purpose, floorMin,floorMax,
       // EMI filter parameters
       emiAmount, loanTenureYears
     } = req.query;
@@ -1942,12 +2309,26 @@ app.get('/api/properties/filter', async (req, res) => {
     // Existing filter logic
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
+    // if (floor) filter.floor = { $gte: Number(floor) };
+    if (floorMin || floorMax) {
+      filter.floor = {};
+      if (floorMin) filter.floor.$gte = Number(floorMin);
+      if (floorMax) filter.floor.$lte = Number(floorMax);
+    }
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
       if (priceMax) filter.price.$lte = Number(priceMax);
     }
-    if (type_name) filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    // if (type_name) filter.type_name = { $in: Array.isArray(type_name) ? type_name : [type_name] };
+    if (type_name) {
+      filter.type_name = {
+        $in: Array.isArray(type_name)
+          ? type_name.map((name) => new RegExp(`^${name}$`, 'i')) // Convert each type_name to a case-insensitive regex
+          : [new RegExp(`^${type_name}$`, 'i')], // Single value case-insensitive regex
+      };
+    }
+
     if (furnishing) filter.furnishing = furnishing;
     if (area) filter.area = { $gte: Number(area) };
     if (construction_status) filter.construction_status = construction_status;
@@ -2008,7 +2389,7 @@ app.get('/api/properties/filter', async (req, res) => {
       // Sort properties by affordability ratio (most affordable first)
       properties.sort((a, b) => a.affordabilityRatio - b.affordabilityRatio);
     }
-
+    
     res.json({
       totalProperties: properties.length,
       properties: properties
@@ -2099,7 +2480,8 @@ app.put('/api/properties/:id', async (req, res) => {
 // API to add a complete list with options
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
-    const { listName, options } = req.body;
+    console.log("body",req.body)
+    const { listName, categoryType, title, headerImage ,options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2122,12 +2504,13 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, options });
+      const newListOption = new ListOptions({ listName, categoryType,title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
         list: newListOption
       });
+      console.log("newListOption", newListOption)
     }
   } catch (error) {
     console.error('Error adding/updating list:', error);
@@ -2162,6 +2545,7 @@ app.get('/api/list-options/:listName', async (req, res) => {
 // Create a new list option
 app.post('/api/list-options', async (req, res) => {
   try {
+    console.log(req.body)
     const newListOption = new ListOptions(req.body);
     const savedListOption = await newListOption.save();
     res.status(201).json(savedListOption);
@@ -2174,6 +2558,7 @@ app.post('/api/list-options', async (req, res) => {
 // Update an existing list option
 app.put('/api/list-options/:listName', async (req, res) => {
   try {
+    console.log(req.body)
     const updatedListOption = await ListOptions.findOneAndUpdate(
       { listName: req.params.listName },
       req.body,
@@ -4078,6 +4463,7 @@ app.get('/api/home-feed', async (req, res) => {
       ...allListOptions.map(listOption => ({
         sectionType: 'optionList',
         title: listOption.title,
+        categoryType: listOption.categoryType, // Add this line
         headerImage: listOption.headerImage,
         subtitle: `Browse ${listOption.listName}`,
         backgroundColor: '#ffffff',
@@ -4271,6 +4657,342 @@ app.post('/api/populate-kanpur-properties', async (req, res) => {
       message: 'Error populating properties',
       error: error.message
     });
+  }
+});
+
+
+app.delete('/api/users/delete-account', authenticateToken, async (req, res) => {
+  try {
+      const userId = req.user.id;
+
+      // Find and delete user
+      const user = await User.findByIdAndDelete(userId);
+      if (!user) {
+          return res.status(404).json({
+              status_code: '404',
+              success: 'false',
+              msg: 'User not found'
+          });
+      }
+
+      // Delete user's activity history
+      await Promise.all([
+          // Delete user's properties
+          Property.deleteMany({ user_id: userId }),
+          // Delete user's favorites
+          Property.updateMany(
+              { _id: { $in: user.favorites } },
+              { $pull: { favorited_by: userId } }
+          ),
+          // Delete user's recent views
+          Property.updateMany(
+              { _id: { $in: user.recent_views } },
+              { $pull: { viewed_by: userId } }
+          )
+      ]);
+
+      res.json({
+          status_code: '200',
+          success: 'true',
+          msg: 'Account deleted successfully'
+      });
+
+  } catch (error) {
+      console.error('Error deleting account:', error);
+      res.status(500).json({
+          status_code: '500',
+          success: 'false',
+          msg: 'Failed to delete account',
+          error: error.message
+      });
+  }
+});
+
+// Logout Endpoint (Optional - for token invalidation)
+app.post('/api/users/logout', authenticateToken, async (req, res) => {
+  try {
+      const userId = req.user.id;
+      
+      // Update last logout timestamp
+      await User.findByIdAndUpdate(userId, {
+          $set: {
+              lastLogout: new Date(),
+              activityLog: {
+                  $push: {
+                      action: 'LOGOUT',
+                      timestamp: new Date(),
+                      deviceInfo: req.headers['user-agent']
+                  }
+              }
+          }
+      });
+
+      res.json({
+          status_code: '200',
+          success: 'true',
+          msg: 'Logged out successfully'
+      });
+
+  } catch (error) {
+      console.error('Error logging out:', error);
+      res.status(500).json({
+          status_code: '500',
+          success: 'false',
+          msg: 'Failed to logout',
+          error: error.message
+      });
+  }
+});
+
+
+// Track a visit
+app.post('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { itemType, itemId } = req.body;
+      await Visit.create({ userId: req.user.id, itemType, itemId });
+      res.json({ success: true });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get visit history
+app.get('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { type, page = 1, limit = 20 } = req.query;
+      const query = { userId: req.user.id };
+      if (type) query.itemType = type;
+
+      const visits = await Visit.find(query)
+          .sort({ timestamp: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit);
+
+      res.json({ success: true, data: visits });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Clear history
+app.delete('/api/history', authenticateToken, async (req, res) => {
+  try {
+      const { type } = req.query;
+      const query = { userId: req.user.id };
+      if (type) query.itemType = type;
+
+      await Visit.deleteMany(query);
+      res.json({ success: true });
+  } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+
+app.post('/api/test/property-view-notification', async (req, res) => {
+  try {
+      const { propertyId, testEmail } = req.body;
+      console.log('Starting notification test for property:', propertyId);
+
+      // Find the property
+      const property = await Property.findOne({ post_id: propertyId });
+      if (!property) {
+          return res.status(404).json({
+              success: false,
+              message: 'Property not found',
+              propertyId
+          });
+      }
+
+      // Check if property has an owner
+      if (!property.user_id) {
+          // Create a test user if none exists
+          const testUser = new User({
+              name: 'Test Owner',
+              email: testEmail || 'test@example.com',
+              phone: '1234567890',
+              loginType: 'TEST',
+              isPhoneVerified: true
+          });
+          await testUser.save();
+
+          // Assign the test user to the property
+          property.user_id = testUser._id;
+          await property.save();
+
+          console.log('Created test user and assigned to property:', {
+              userId: testUser._id,
+              propertyId: property.post_id
+          });
+      }
+
+      const testViewerInfo = {
+          viewerId: '123test',
+          viewerName: 'Test User',
+          viewerEmail: 'viewer@example.com',
+          viewerPhone: '9876543210',
+          viewerVerificationStatus: {
+              phone: true,
+              email: true
+          },
+          city: 'Test City',
+          region: 'Test Region',
+          country: 'Test Country',
+          timestamp: new Date()
+      };
+
+      // Initialize notification service
+      const notificationService = new PropertyViewNotificationService();
+      
+      // Call the service
+      await notificationService.handlePropertyView(propertyId, testViewerInfo);
+
+      res.json({
+          success: true,
+          message: 'Property view notification test initiated',
+          details: {
+              propertyId,
+              property: {
+                  title: property.post_title,
+                  owner: property.user_id
+              },
+              viewerInfo: testViewerInfo,
+              timestamp: new Date()
+          }
+      });
+
+  } catch (error) {
+      console.error('Property notification test failed:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Failed to send notification',
+          error: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+  }
+});
+
+/* CURD with cities   */
+  // POST API for adding cities
+  app.post('/api/add-new-city', async (req, res) => {
+    try {
+      const { cities } = req.body;
+
+      if (!cities || !Array.isArray(cities)) {
+        return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
+      }
+
+      const citiesDocument = await Cities.findOne(); // will get all cities array of string from here
+      if (!citiesDocument) {
+        // If no document exists, create a new one with the provided cities
+        const newCitiesDocument = new Cities({ cities });
+        const savedDocument = await newCitiesDocument.save();
+        return res.status(201).json({ message: 'Cities added successfully', savedCities: cities });
+      }
+
+      // Filter duplicate and new cities
+      const existingCities = citiesDocument.cities.map(city => city.toLowerCase());
+      const newCities = [];
+      const duplicateCities = [];
+
+      cities.forEach(city => {
+        // if city already exists than push into duplicate array 
+        if (existingCities.includes(city.toLowerCase())) {
+          duplicateCities.push(city);
+        } else {
+          // else if already not exists then push into newCities array
+          newCities.push(city);
+        }
+      });
+
+      if (newCities.length > 0) {
+        // Add new cities to the database , if any 
+        citiesDocument.cities.push(...newCities);
+        await citiesDocument.save();
+      }
+
+      res.status(200).json({
+        message: 'Cities processed',
+        savedCities: newCities,
+        duplicateCities
+      });
+    } catch (error) {
+      console.error('Error adding cities:', error);
+      res.status(500).json({ message: 'An error occurred', error: error.message });
+    }
+  });
+
+
+// GET API to fetch all cities
+app.get('/api/get-all-cities', async (req, res) => {
+  try {
+    // Fetch all documents from the City collection
+    const citiesData = await Cities.findOne(); // Assuming there is only one document storing the array
+
+    if (!citiesData) {
+      return res.status(404).json({ message: 'No cities found in the database' });
+    }
+
+    // Send the cities array as the response
+    res.status(200).json({
+      message: 'Cities retrieved successfully',
+      cities: citiesData.cities,
+    });
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching cities',
+      error: error.message,
+    });
+  }
+});
+
+// DELETE API for removing cities
+app.delete('/api/remove-cities', async (req, res) => {
+  try {
+    const { cities } = req.body;
+
+    if (!cities || !Array.isArray(cities)) {
+      return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
+    }
+
+    // Fetch the cities document
+    const citiesDocument = await Cities.findOne();
+    if (!citiesDocument) {
+      return res.status(404).json({ message: 'No cities document found.' });
+    }
+
+    // Get the current cities in the database (case insensitive check)
+    let existingCities = citiesDocument.cities.map(city => city.toLowerCase());
+    const removedCities = [];
+    const notFoundCities = [];
+
+    // Loop through the cities to be removed
+    cities.forEach(city => {
+      const cityLowerCase = city.toLowerCase();
+      if (existingCities.includes(cityLowerCase)) {
+        // Remove city from the array
+        citiesDocument.cities = citiesDocument.cities.filter(c => c.toLowerCase() !== cityLowerCase);
+        removedCities.push(city);
+      } else {
+        notFoundCities.push(city);
+      }
+    });
+
+    // Save the updated cities list
+    if (removedCities.length > 0) {
+      await citiesDocument.save();
+    }
+
+    // Return response
+    res.status(200).json({
+      message: 'Cities processed',
+      removedCities,
+      notFoundCities
+    });
+  } catch (error) {
+    console.error('Error removing cities:', error);
+    res.status(500).json({ message: 'An error occurred', error: error.message });
   }
 });
 
