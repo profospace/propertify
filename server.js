@@ -1273,7 +1273,7 @@ app.get('/api/colors', (req, res) => {
 
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
+mongoose.connect(process.env.mongodb_uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -1510,7 +1510,7 @@ const NodeGeocoder = require('node-geocoder');
 // });
 const geocoder = NodeGeocoder({
   provider: 'google',
-  apiKey: 'AIzaSyDRTXePRjHx-5L6AwhWeDPLxU0fgVZQB3g'
+  apiKey: process.env.google_api_key
 });
 
 
@@ -5004,3 +5004,5 @@ app.listen(PORT, () => {
   // Ensure indexes are built, especially for geospatial queries
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
+
+/* new branch create  - Anurag-branch */
