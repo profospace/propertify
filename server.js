@@ -30,6 +30,7 @@ app.use('/api/connections', propertyConnectionRouter);
 const logger = require('winston'); // Assuming winston is used for logging
 const PropertyViewNotificationService = require('./PropertyViewNotificationService');
 const notificationService = new PropertyViewNotificationService();
+const Cities = require('./Cities');
 
 
 logger.configure({
@@ -1362,6 +1363,7 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
 
     // Get the city name from coordinates
     const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    console.log("geoResults", geoResults)
 
     if (geoResults.length === 0) {
       return res.status(404).json({ message: 'Unable to determine city from given coordinates' });
@@ -1392,6 +1394,44 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
     res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
   }
 });
+
+/* Get Home Feed If Available In City  */
+const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
+
+app.get('/api/local-home-feed/location', async (req, res) => {
+  try {
+    console.log("Hehehe");
+    const { longitude, latitude } = req.query;
+    console.log(req.query);
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    // Get the city name from coordinates
+    const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
+    const city = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
+
+    console.log("Detected city:", city);
+
+    if (!city) {
+      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
+    }
+
+    // Check if the city exists in dummyCities
+    const isCityAvailable = dummyCities.includes(city);
+    if (!isCityAvailable) {
+      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
+    }
+
+    // City is available
+    res.status(200).json({ message: `Welcome! We are available in ${city}` });
+  } catch (error) {
+    console.log("ERROR :", error);
+    res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
+  }
+});
+
 
 
 // Create
@@ -1462,8 +1502,12 @@ app.delete('/api/local-home-feed/:id', async (req, res) => {
 
 const NodeGeocoder = require('node-geocoder');
 
+// const geocoder = NodeGeocoder({
+//   provider: 'openstreetmap'
+// });
 const geocoder = NodeGeocoder({
-  provider: 'openstreetmap'
+  provider: 'google',
+  apiKey: 'AIzaSyDRTXePRjHx-5L6AwhWeDPLxU0fgVZQB3g'
 });
 
 
@@ -2243,7 +2287,7 @@ app.get('/api/properties/filter', async (req, res) => {
       priceMin, priceMax, type_name, sort, radius,
       furnishing, area, construction_status,
       carpetArea, superBuiltupArea, available, category,
-      region, possession, broker_status, purpose,floor,
+      region, possession, broker_status, purpose, floorMin,floorMax,
       // EMI filter parameters
       emiAmount, loanTenureYears
     } = req.query;
@@ -2262,7 +2306,12 @@ app.get('/api/properties/filter', async (req, res) => {
     // Existing filter logic
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
-    if (floor) filter.floor = { $gte: Number(floor) };
+    // if (floor) filter.floor = { $gte: Number(floor) };
+    if (floorMin || floorMax) {
+      filter.floor = {};
+      if (floorMin) filter.floor.$gte = Number(floorMin);
+      if (floorMax) filter.floor.$lte = Number(floorMax);
+    }
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
@@ -4817,6 +4866,130 @@ app.post('/api/test/property-view-notification', async (req, res) => {
           error: error.message,
           stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
+  }
+});
+
+/* CURD with cities   */
+  // POST API for adding cities
+  app.post('/api/add-new-city', async (req, res) => {
+    try {
+      const { cities } = req.body;
+
+      if (!cities || !Array.isArray(cities)) {
+        return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
+      }
+
+      const citiesDocument = await Cities.findOne(); // will get all cities array of string from here
+      if (!citiesDocument) {
+        // If no document exists, create a new one with the provided cities
+        const newCitiesDocument = new Cities({ cities });
+        const savedDocument = await newCitiesDocument.save();
+        return res.status(201).json({ message: 'Cities added successfully', savedCities: cities });
+      }
+
+      // Filter duplicate and new cities
+      const existingCities = citiesDocument.cities.map(city => city.toLowerCase());
+      const newCities = [];
+      const duplicateCities = [];
+
+      cities.forEach(city => {
+        // if city already exists than push into duplicate array 
+        if (existingCities.includes(city.toLowerCase())) {
+          duplicateCities.push(city);
+        } else {
+          // else if already not exists then push into newCities array
+          newCities.push(city);
+        }
+      });
+
+      if (newCities.length > 0) {
+        // Add new cities to the database , if any 
+        citiesDocument.cities.push(...newCities);
+        await citiesDocument.save();
+      }
+
+      res.status(200).json({
+        message: 'Cities processed',
+        savedCities: newCities,
+        duplicateCities
+      });
+    } catch (error) {
+      console.error('Error adding cities:', error);
+      res.status(500).json({ message: 'An error occurred', error: error.message });
+    }
+  });
+
+
+// GET API to fetch all cities
+app.get('/api/get-all-cities', async (req, res) => {
+  try {
+    // Fetch all documents from the City collection
+    const citiesData = await Cities.findOne(); // Assuming there is only one document storing the array
+
+    if (!citiesData) {
+      return res.status(404).json({ message: 'No cities found in the database' });
+    }
+
+    // Send the cities array as the response
+    res.status(200).json({
+      message: 'Cities retrieved successfully',
+      cities: citiesData.cities,
+    });
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching cities',
+      error: error.message,
+    });
+  }
+});
+
+// DELETE API for removing cities
+app.delete('/api/remove-cities', async (req, res) => {
+  try {
+    const { cities } = req.body;
+
+    if (!cities || !Array.isArray(cities)) {
+      return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
+    }
+
+    // Fetch the cities document
+    const citiesDocument = await Cities.findOne();
+    if (!citiesDocument) {
+      return res.status(404).json({ message: 'No cities document found.' });
+    }
+
+    // Get the current cities in the database (case insensitive check)
+    let existingCities = citiesDocument.cities.map(city => city.toLowerCase());
+    const removedCities = [];
+    const notFoundCities = [];
+
+    // Loop through the cities to be removed
+    cities.forEach(city => {
+      const cityLowerCase = city.toLowerCase();
+      if (existingCities.includes(cityLowerCase)) {
+        // Remove city from the array
+        citiesDocument.cities = citiesDocument.cities.filter(c => c.toLowerCase() !== cityLowerCase);
+        removedCities.push(city);
+      } else {
+        notFoundCities.push(city);
+      }
+    });
+
+    // Save the updated cities list
+    if (removedCities.length > 0) {
+      await citiesDocument.save();
+    }
+
+    // Return response
+    res.status(200).json({
+      message: 'Cities processed',
+      removedCities,
+      notFoundCities
+    });
+  } catch (error) {
+    console.error('Error removing cities:', error);
+    res.status(500).json({ message: 'An error occurred', error: error.message });
   }
 });
 
