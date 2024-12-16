@@ -1396,8 +1396,7 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
 });
 
 /* Get Home Feed If Available In City  */
-const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
-
+// const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
 app.get('/api/local-home-feed/location', async (req, res) => {
   try {
     console.log("Hehehe");
@@ -1410,22 +1409,27 @@ app.get('/api/local-home-feed/location', async (req, res) => {
 
     // Get the city name from coordinates
     const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
-    const city = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
+    const cityName = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
 
-    console.log("Detected city:", city);
+    console.log("Detected city:", cityName);
 
-    if (!city) {
+    if (!cityName) {
       return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
     }
 
     // Check if the city exists in dummyCities
-    const isCityAvailable = dummyCities.includes(city);
-    if (!isCityAvailable) {
-      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
-    }
+    // const isCityAvailable = dummyCities.includes(city);
+    const allCities = await Cities.findOne()
+    // console.log("allCities", allCities.cities)
+    const cityExists = allCities.cities.some(city => city.toLowerCase() === cityName.toLowerCase());
+    console.log(cityExists)
+    
+    if(cityExists){
+      res.status(200).json({ message: `Welcome! We are available in ${cityName}` });
+    }else{
+      res.status(200).json({ message: `Currently we are not available in your city ${cityName}`, status: 900 });
 
-    // City is available
-    res.status(200).json({ message: `Welcome! We are available in ${city}` });
+    }
   } catch (error) {
     console.log("ERROR :", error);
     res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
