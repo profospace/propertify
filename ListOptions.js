@@ -19,6 +19,7 @@ const optionSchema = new mongoose.Schema({
 // Define the schema for listOptions, which includes multiple lists
 const listOptionsSchema = new mongoose.Schema({
   categoryType: { type: String, enum: ['carousal', 'horizontal_list', 'single_item', 'grid_view', 'vertical_list'], default: 'horizontal_list', required: true },
+  sectionType: { type: String, enum: ['banner', 'launch', 'search', 'userprofile', 'list', 'call'] },
   listName: {
     type: String,
     required: true,
@@ -32,6 +33,7 @@ const listOptionsSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  optionType: { type: Boolean },
   options: [optionSchema]
 }, {
   timestamps: true        // Added timestamps

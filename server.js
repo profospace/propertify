@@ -2499,7 +2499,7 @@ app.put('/api/properties/:id', async (req, res) => {
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
     console.log("body",req.body)
-    const { listName, categoryType, title, headerImage ,options } = req.body;
+    const { listName, sectionType,categoryType, title, headerImage ,options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2522,7 +2522,7 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, categoryType,title, headerImage, options });
+      const newListOption = new ListOptions({ listName, categoryType, sectionType,title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
@@ -4197,6 +4197,8 @@ app.get('/api/projects/:id', async (req, res) => {
       .populate('builder')
       .populate('phases.buildings');
 
+      console.log("propejcttcttc : ", project)
+
     // If not found and ID is a valid ObjectId, try finding by _id
     if (!project && mongoose.Types.ObjectId.isValid(req.params.id)) {
       project = await Project.findById(req.params.id)
@@ -4219,12 +4221,15 @@ app.get('/api/projects/:id', async (req, res) => {
 
 // Update project
 app.put('/api/projects/:id', async (req, res) => {
+  console.log("boddy:",req.body)
   try {
     const project = await Project.findOneAndUpdate(
       { projectId: req.params.id },
       { ...req.body, updatedAt: Date.now() },
       { new: true, runValidators: true }
     );
+
+    console.log("project", project)
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
@@ -5018,6 +5023,26 @@ app.delete('/api/remove-cities', async (req, res) => {
 });
 
 
+//
+app.get('/api/list-images', (req, res) => {
+  console.log("Ha hello")
+  const s3Params = {
+    Bucket: 'wityysaver',
+    Prefix: ''
+  };
+
+  s3.listObjectsV2(s3Params, (err, data) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: err });
+    }
+    const images = data.Contents
+      .filter(item => item.Key.match(/\.(jpg|jpeg|png|gif)$/i))
+      .map(item => `https://${s3Params.Bucket}.s3.amazonaws.com/${item.Key}`);
+    res.json(images);
+  });
+});
+
 
 // Initialize the server
 app.listen(PORT, () => {
@@ -5027,3 +5052,4 @@ app.listen(PORT, () => {
 });
 
 // keys removed
+
