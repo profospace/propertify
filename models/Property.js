@@ -12,7 +12,7 @@ const propertySchema = new mongoose.Schema({
   post_description: String,
   phone: String,
   address: String,
-  floor: Number,
+  floor: String,
   agreement: String,
   priceUnit: String,
   areaUnit: String,
