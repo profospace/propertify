@@ -2307,11 +2307,27 @@ app.get('/api/properties/filter', async (req, res) => {
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
     // if (floor) filter.floor = { $gte: Number(floor) };
+    // if (floorMin || floorMax) {
+    //   filter.floor = {};
+    //   if (floorMin) filter.floor.$gte =floorMin;
+    //   if (floorMax) filter.floor.$lte =floorMax;
+    // }
+
     if (floorMin || floorMax) {
-      filter.floor = {};
-      if (floorMin) filter.floor.$gte = Number(floorMin);
-      if (floorMax) filter.floor.$lte = Number(floorMax);
+      const floorConditions = [];
+      if (floorMin) {
+        floorConditions.push({ $gte: [{ $toInt: "$floor" }, Number(floorMin)] });
+      }
+      if (floorMax) {
+        floorConditions.push({ $lte: [{ $toInt: "$floor" }, Number(floorMax)] });
+      }
+
+      if (floorConditions.length > 0) {
+        filter.$expr = { $and: floorConditions };
+      }
     }
+
+
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
@@ -2349,7 +2365,8 @@ app.get('/api/properties/filter', async (req, res) => {
       ];
     }
 
-    console.log('Final filter object:', JSON.stringify(filter, null, 2));
+    // console.log('Final filter object:', JSON.stringify(filter, null, 2));
+    console.log('Final filter object:', filter);
 
     // Sorting
     let sortOption = {};
@@ -4216,8 +4233,10 @@ app.put('/api/projects/:id', async (req, res) => {
 
 // Delete project
 app.delete('/api/projects/:id', async (req, res) => {
+  console.log(req.params)
   try {
     const project = await Project.findOneAndDelete({ projectId: req.params.id });
+    console.log(project)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
@@ -4948,6 +4967,7 @@ app.get('/api/get-all-cities', async (req, res) => {
 app.delete('/api/remove-cities', async (req, res) => {
   try {
     const { cities } = req.body;
+    console.log("cities to be delete" , req.body)
 
     if (!cities || !Array.isArray(cities)) {
       return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
@@ -5001,3 +5021,5 @@ app.listen(PORT, () => {
   // Ensure indexes are built, especially for geospatial queries
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
+
+// keys removed
