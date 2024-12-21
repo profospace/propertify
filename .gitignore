@@ -5,7 +5,7 @@ sendgrid.env
 .env_2024*
 .bin
 .node_modules/
-
+.uploads/
 # Log files
 *.log
 .history/

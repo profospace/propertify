@@ -31,6 +31,8 @@ const logger = require('winston'); // Assuming winston is used for logging
 const PropertyViewNotificationService = require('./PropertyViewNotificationService');
 const notificationService = new PropertyViewNotificationService();
 const Cities = require('./Cities');
+const propertyInteractionRoutes = require('./routes/PropertyInteractionRoutes');
+
 
 
 logger.configure({
@@ -1042,7 +1044,7 @@ app.delete('/api/colors/ads/:adId', async (req, res) => {
 //       Object.keys(updatedColorData).forEach(key => {
 //         if (key === 'ads') {
 //           // Check if ads array exists and has items
-          
+
 
 //           if(Array.isArray(updatedColorData.ads) && updatedColorData.ads.length > 0 ){
 //             const newAds = updatedColorData.ads.filter(ad => ad.pagelink && ad.pagelink.trim() !== '')
@@ -1050,7 +1052,7 @@ app.delete('/api/colors/ads/:adId', async (req, res) => {
 //               colorData.ads = [...colorData.ads , ...newAds]
 //             }
 //           }
-                  
+
 
 //         } else {
 //           colorData[key] = updatedColorData[key];
@@ -1140,16 +1142,16 @@ app.post('/api/colors/update-ads', async (req, res) => {
 
       console.log("existingAdIndex", existingAdIndex)
 
-        if (existingAdIndex !== -1) {
-          // Update existing ad
-          colorData.ads[existingAdIndex] = {
-            ...colorData.ads[existingAdIndex],
-            ...updatedAds
-          };
-        } else {
-          // Add new ad
-          colorData.ads.push(updatedAds);
-        }
+      if (existingAdIndex !== -1) {
+        // Update existing ad
+        colorData.ads[existingAdIndex] = {
+          ...colorData.ads[existingAdIndex],
+          ...updatedAds
+        };
+      } else {
+        // Add new ad
+        colorData.ads.push(updatedAds);
+      }
 
       await colorData.save();
       res.status(200).json(colorData);
@@ -1221,7 +1223,7 @@ app.post('/api/colors/update-ads', async (req, res) => {
 //     if (!Array.isArray(updatedAds) || !updatedAds.every(ad => ad.adId)) {
 //       return res.status(400).json({ error: 'Invalid ads data' });
 //     }
-    
+
 //     // Retrieve the color gradient data
 //     let colorData = await ColorGradient.findOne({});
 //     console.log("colorData", colorData)
@@ -1233,12 +1235,12 @@ app.post('/api/colors/update-ads', async (req, res) => {
 //       colorData.ads = [];
 //     }
 //     console.log("HEHEHHEHHE222")
-    
+
 //     // Update or add ads
 //     for (const updatedAd of updatedAds) {
 //       const existingAdIndex = colorData.ads.findIndex(ad => ad.adId === updatedAd.adId);
 //       console.log("existingAdIndex", existingAdIndex)
-      
+
 //       if (existingAdIndex !== -1) {
 //         // Update existing ad
 //         colorData.ads[existingAdIndex] = {
@@ -1250,7 +1252,7 @@ app.post('/api/colors/update-ads', async (req, res) => {
 //         colorData.ads.push(updatedAd);
 //       }
 //     }
-    
+
 //     console.log("HEHEHHEHHE333")
 //     // Save the updated color gradient data
 //     await colorData.save();
@@ -1396,8 +1398,7 @@ app.get('/api/local-home-feed/by-location', async (req, res) => {
 });
 
 /* Get Home Feed If Available In City  */
-const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
-
+// const dummyCities = ['kanpur', 'varanasi', 'noida', 'ghaziabad', 'jhansi', 'ayodhya', 'mathura'];
 app.get('/api/local-home-feed/location', async (req, res) => {
   try {
     console.log("Hehehe");
@@ -1410,22 +1411,27 @@ app.get('/api/local-home-feed/location', async (req, res) => {
 
     // Get the city name from coordinates
     const geoResults = await geocoder.reverse({ lat: latitude, lon: longitude });
-    const city = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
+    const cityName = geoResults?.[0]?.city?.toLowerCase(); // Convert city name to lowercase for comparison
 
-    console.log("Detected city:", city);
+    console.log("Detected city:", cityName);
 
-    if (!city) {
+    if (!cityName) {
       return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
     }
 
     // Check if the city exists in dummyCities
-    const isCityAvailable = dummyCities.includes(city);
-    if (!isCityAvailable) {
-      return res.status(404).json({ message: 'Currently we are not available in your city', status: 900 });
-    }
+    // const isCityAvailable = dummyCities.includes(city);
+    const allCities = await Cities.findOne()
+    // console.log("allCities", allCities.cities)
+    const cityExists = allCities.cities.some(city => city.toLowerCase() === cityName.toLowerCase());
+    console.log(cityExists)
 
-    // City is available
-    res.status(200).json({ message: `Welcome! We are available in ${city}` });
+    if (cityExists) {
+      res.status(200).json({ message: `Welcome! We are available in ${cityName}` });
+    } else {
+      res.status(200).json({ message: `Currently we are not available in your city ${cityName}`, status: 900 });
+
+    }
   } catch (error) {
     console.log("ERROR :", error);
     res.status(500).json({ message: 'An error occurred while fetching local home feed', error: error.message });
@@ -1674,17 +1680,17 @@ app.get('/api/details/:id', async (req, res, next) => {
 
     // Get viewer information first
     const viewer = await User.findById(req.user?.id).select('name email phone verificationStatus');
-   
-   // Send notification in background
+
+    // Send notification in background
     if (viewer) {
       logger.info('Starting property view notification', {
         propertyId,
         viewer: {
-            id: viewer._id,
-            name: viewer.name,
-            email: viewer.email,
-            phone: viewer.phone,
-            verificationStatus: viewer.verificationStatus
+          id: viewer._id,
+          name: viewer.name,
+          email: viewer.email,
+          phone: viewer.phone,
+          verificationStatus: viewer.verificationStatus
         }
       });
 
@@ -1701,23 +1707,23 @@ app.get('/api/details/:id', async (req, res, next) => {
       }).then(() => {
         // Log success
         logger.info('Property view notification processed successfully', {
-            propertyId,
-            viewerId: viewer._id,
-            timestamp: new Date()
+          propertyId,
+          viewerId: viewer._id,
+          timestamp: new Date()
         });
       }).catch(error => {
         // Log detailed error information
         logger.error('Property view notification failed', {
-            propertyId,
-            viewerId: viewer._id,
-            errorMessage: error.message,
-            errorStack: error.stack,
-            timestamp: new Date(),
-            location: {
-                city: req.clientLocation?.city,
-                region: req.clientLocation?.region,
-                country: req.clientLocation?.country
-            }
+          propertyId,
+          viewerId: viewer._id,
+          errorMessage: error.message,
+          errorStack: error.stack,
+          timestamp: new Date(),
+          location: {
+            city: req.clientLocation?.city,
+            region: req.clientLocation?.region,
+            country: req.clientLocation?.country
+          }
         });
       });
     }
@@ -2033,12 +2039,12 @@ app.put('/api/list-options/:listName/update-details', async (req, res) => {
 app.put('/api/list-options/:listName', async (req, res) => {
   try {
     const { listName } = req.params;
-    const { categoryType } = req.body;
+    const { categoryType, city, sectionType } = req.body;
 
     // Find the document and update it
     const updatedList = await ListOptions.findOneAndUpdate(
       { listName },
-      { $set: { categoryType: categoryType } },
+      { $set: { categoryType: categoryType  , city , sectionType} },
       { new: true, runValidators: true }
     );
 
@@ -2151,7 +2157,7 @@ app.put('/api/list-options/:listName/update-option/:optionId', async (req, res) 
 //     // Return the updated document
 //     res.status(201).json({
 //       message: "categorytype updated Successfully"})
-    
+
 //   } catch (error) {
 //     console.error('Update error:', error);
 //     res.status(500).json({
@@ -2209,10 +2215,10 @@ app.post('/api/upload/property', upload.fields([
   { name: 'floor_plan_image', maxCount: 1 },
   { name: 'galleryList', maxCount: 10 }
 ]), async (req, res) => {
-  console.log("body :::::",req.body )
+  console.log("body :::::", req.body)
   try {
     const propertyData = JSON.parse(req.body.data || '{}');
-    const negotiation = req.body.negotiation === 'true'; 
+    const negotiation = req.body.negotiation === 'true';
     const uploadedImages = [];
 
     // Upload post image to S3
@@ -2278,6 +2284,39 @@ app.post('/api/upload/property', upload.fields([
   }
 });
 
+// UPdate property status
+app.put('/api/property/update-status/:id', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    if (!id || !status) {
+      return res.status(400).json({ message: "id and status value are required to update the status" });
+    }
+
+    console.log("ID:", id, "Status:", status);
+
+    // Find and update the property, or add the `status` field if it does not exist
+    const response = await Property.findOneAndUpdate(
+      { _id: id }, // Filter by the document's `_id`
+      { $set: { status } }, // Set or update the `status` field
+      { new: true, upsert: true } // Options: `new` returns the updated document, `upsert` creates it if not found
+    );
+
+    console.log("Property response:", response);
+
+    if (response) {
+      return res.status(200).json({ message: `Property status updated to '${status}' successfully` });
+    } else {
+      return res.status(500).json({ message: 'Failed to update property status' });
+    }
+  } catch (error) {
+    console.error("Error updating property status:", error);
+    return res.status(500).json({ message: 'Failed to update property status', error: error.message });
+  }
+});
+
+
 
 app.get('/api/properties/filter', async (req, res) => {
   console.log('Received filter request with query params:', req.query);
@@ -2287,7 +2326,7 @@ app.get('/api/properties/filter', async (req, res) => {
       priceMin, priceMax, type_name, sort, radius,
       furnishing, area, construction_status,
       carpetArea, superBuiltupArea, available, category,
-      region, possession, broker_status, purpose, floorMin,floorMax,
+      region, possession, broker_status, purpose, floorMin, floorMax,
       // EMI filter parameters
       emiAmount, loanTenureYears
     } = req.query;
@@ -2307,11 +2346,27 @@ app.get('/api/properties/filter', async (req, res) => {
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
     // if (floor) filter.floor = { $gte: Number(floor) };
+    // if (floorMin || floorMax) {
+    //   filter.floor = {};
+    //   if (floorMin) filter.floor.$gte =floorMin;
+    //   if (floorMax) filter.floor.$lte =floorMax;
+    // }
+
     if (floorMin || floorMax) {
-      filter.floor = {};
-      if (floorMin) filter.floor.$gte = Number(floorMin);
-      if (floorMax) filter.floor.$lte = Number(floorMax);
+      const floorConditions = [];
+      if (floorMin) {
+        floorConditions.push({ $gte: [{ $toInt: "$floor" }, Number(floorMin)] });
+      }
+      if (floorMax) {
+        floorConditions.push({ $lte: [{ $toInt: "$floor" }, Number(floorMax)] });
+      }
+
+      if (floorConditions.length > 0) {
+        filter.$expr = { $and: floorConditions };
+      }
     }
+
+
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
@@ -2337,9 +2392,11 @@ app.get('/api/properties/filter', async (req, res) => {
     if (possession) filter.possession = possession;
     if (broker_status) filter.broker_status = broker_status;
 
+    console.log(req.query.radius, "RADIUS")
     // Geospatial query
     if (latitude && longitude) {
-      const radiusInKm = radius ? parseFloat(radius) : 50;
+      // const radiusInKm = radius ? parseFloat(radius) : 50;
+      const radiusInKm = Number(radius) * 100 || 50;
       const radiusInMeters = radiusInKm * 1000;
       filter.$and = [
         { latitude: { $gte: Number(latitude) - (radiusInKm / 111.32) } },
@@ -2349,7 +2406,8 @@ app.get('/api/properties/filter', async (req, res) => {
       ];
     }
 
-    console.log('Final filter object:', JSON.stringify(filter, null, 2));
+    // console.log('Final filter object:', JSON.stringify(filter, null, 2));
+    console.log('Final filter object:', filter);
 
     // Sorting
     let sortOption = {};
@@ -2386,7 +2444,7 @@ app.get('/api/properties/filter', async (req, res) => {
       // Sort properties by affordability ratio (most affordable first)
       properties.sort((a, b) => a.affordabilityRatio - b.affordabilityRatio);
     }
-    
+
     res.json({
       totalProperties: properties.length,
       properties: properties
@@ -2473,12 +2531,11 @@ app.put('/api/properties/:id', async (req, res) => {
   }
 });
 
-
 // API to add a complete list with options
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
-    console.log("body",req.body)
-    const { listName, categoryType, title, headerImage ,options } = req.body;
+    console.log("body", req.body)
+    const { listName, sectionType,city, categoryType, title, headerImage, options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2501,7 +2558,7 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, categoryType,title, headerImage, options });
+      const newListOption = new ListOptions({ listName, categoryType,city, sectionType, title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
@@ -2542,7 +2599,7 @@ app.get('/api/list-options/:listName', async (req, res) => {
 // Create a new list option
 app.post('/api/list-options', async (req, res) => {
   try {
-    console.log(req.body)
+    console.log("req.body", req.body)
     const newListOption = new ListOptions(req.body);
     const savedListOption = await newListOption.save();
     res.status(201).json(savedListOption);
@@ -2553,23 +2610,25 @@ app.post('/api/list-options', async (req, res) => {
 });
 
 // Update an existing list option
-app.put('/api/list-options/:listName', async (req, res) => {
-  try {
-    console.log(req.body)
-    const updatedListOption = await ListOptions.findOneAndUpdate(
-      { listName: req.params.listName },
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedListOption) {
-      return res.status(404).json({ message: 'List not found' });
-    }
-    res.json(updatedListOption);
-  } catch (error) {
-    console.error('Error updating list option:', error);
-    res.status(400).json({ message: 'Error updating list option', error: error.message });
-  }
-});
+// app.put('/api/list-options/:listName', async (req, res) => {
+//   try {
+//     console.log("req.body", req.body)
+//     console.log("req.params", req.params.listName)
+//     const updatedListOption = await ListOptions.findOneAndUpdate(
+//       { listName: req.params.listName },
+//       req.body,
+//       { new: true, runValidators: true }
+//     );
+//     if (!updatedListOption) {
+//       return res.status(404).json({ message: 'List not found' });
+//     }
+//     console.log("updatedListOption", updatedListOption)
+//     res.json(updatedListOption);
+//   } catch (error) {
+//     console.error('Error updating list option:', error);
+//     res.status(400).json({ message: 'Error updating list option', error: error.message });
+//   }
+// });
 
 
 // Delete a list option
@@ -3882,7 +3941,7 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
 
     // Update project's connected properties array with the property's _id
     project.connectedProperties.push(property._id);
-    
+
     // Update project statistics
     project.statistics = project.statistics || {};
     project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
@@ -3913,9 +3972,9 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
 
   } catch (error) {
     console.error('Error connecting property to project:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to connect property to project',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -3943,7 +4002,7 @@ app.delete('/api/projects/:projectId/properties/:propertyId', async (req, res) =
     const propertyIndex = project.connectedProperties.indexOf(property._id);
     if (propertyIndex > -1) {
       project.connectedProperties.splice(propertyIndex, 1);
-      
+
       // Update project statistics
       project.statistics = project.statistics || {};
       project.statistics.totalProperties = Math.max(0, (project.statistics.totalProperties || 0) - 1);
@@ -3973,9 +4032,9 @@ app.delete('/api/projects/:projectId/properties/:propertyId', async (req, res) =
 
   } catch (error) {
     console.error('Error disconnecting property from project:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to disconnect property from project',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -4011,9 +4070,9 @@ app.get('/api/projects/:projectId/properties', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching project properties:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch project properties',
-      details: error.message 
+      details: error.message
     });
   }
 });
@@ -4176,6 +4235,8 @@ app.get('/api/projects/:id', async (req, res) => {
       .populate('builder')
       .populate('phases.buildings');
 
+    console.log("propejcttcttc : ", project)
+
     // If not found and ID is a valid ObjectId, try finding by _id
     if (!project && mongoose.Types.ObjectId.isValid(req.params.id)) {
       project = await Project.findById(req.params.id)
@@ -4198,12 +4259,15 @@ app.get('/api/projects/:id', async (req, res) => {
 
 // Update project
 app.put('/api/projects/:id', async (req, res) => {
+  console.log("boddy:", req.body)
   try {
     const project = await Project.findOneAndUpdate(
       { projectId: req.params.id },
       { ...req.body, updatedAt: Date.now() },
       { new: true, runValidators: true }
     );
+
+    console.log("project", project)
 
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
@@ -4216,8 +4280,10 @@ app.put('/api/projects/:id', async (req, res) => {
 
 // Delete project
 app.delete('/api/projects/:id', async (req, res) => {
+  console.log(req.params)
   try {
     const project = await Project.findOneAndDelete({ projectId: req.params.id });
+    console.log(project)
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
@@ -4355,7 +4421,7 @@ app.get('/api/home-feed', async (req, res) => {
           construction: [],
           other: []
         };
-    
+
 
         // Process gallery images by category
         project.gallery?.forEach(galleryItem => {
@@ -4660,84 +4726,84 @@ app.post('/api/populate-kanpur-properties', async (req, res) => {
 
 app.delete('/api/users/delete-account', authenticateToken, async (req, res) => {
   try {
-      const userId = req.user.id;
+    const userId = req.user.id;
 
-      // Find and delete user
-      const user = await User.findByIdAndDelete(userId);
-      if (!user) {
-          return res.status(404).json({
-              status_code: '404',
-              success: 'false',
-              msg: 'User not found'
-          });
-      }
-
-      // Delete user's activity history
-      await Promise.all([
-          // Delete user's properties
-          Property.deleteMany({ user_id: userId }),
-          // Delete user's favorites
-          Property.updateMany(
-              { _id: { $in: user.favorites } },
-              { $pull: { favorited_by: userId } }
-          ),
-          // Delete user's recent views
-          Property.updateMany(
-              { _id: { $in: user.recent_views } },
-              { $pull: { viewed_by: userId } }
-          )
-      ]);
-
-      res.json({
-          status_code: '200',
-          success: 'true',
-          msg: 'Account deleted successfully'
+    // Find and delete user
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) {
+      return res.status(404).json({
+        status_code: '404',
+        success: 'false',
+        msg: 'User not found'
       });
+    }
+
+    // Delete user's activity history
+    await Promise.all([
+      // Delete user's properties
+      Property.deleteMany({ user_id: userId }),
+      // Delete user's favorites
+      Property.updateMany(
+        { _id: { $in: user.favorites } },
+        { $pull: { favorited_by: userId } }
+      ),
+      // Delete user's recent views
+      Property.updateMany(
+        { _id: { $in: user.recent_views } },
+        { $pull: { viewed_by: userId } }
+      )
+    ]);
+
+    res.json({
+      status_code: '200',
+      success: 'true',
+      msg: 'Account deleted successfully'
+    });
 
   } catch (error) {
-      console.error('Error deleting account:', error);
-      res.status(500).json({
-          status_code: '500',
-          success: 'false',
-          msg: 'Failed to delete account',
-          error: error.message
-      });
+    console.error('Error deleting account:', error);
+    res.status(500).json({
+      status_code: '500',
+      success: 'false',
+      msg: 'Failed to delete account',
+      error: error.message
+    });
   }
 });
 
 // Logout Endpoint (Optional - for token invalidation)
 app.post('/api/users/logout', authenticateToken, async (req, res) => {
   try {
-      const userId = req.user.id;
-      
-      // Update last logout timestamp
-      await User.findByIdAndUpdate(userId, {
-          $set: {
-              lastLogout: new Date(),
-              activityLog: {
-                  $push: {
-                      action: 'LOGOUT',
-                      timestamp: new Date(),
-                      deviceInfo: req.headers['user-agent']
-                  }
-              }
-          }
-      });
+    const userId = req.user.id;
 
-      res.json({
-          status_code: '200',
-          success: 'true',
-          msg: 'Logged out successfully'
-      });
+    // Update last logout timestamp
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        lastLogout: new Date(),
+        activityLog: {
+          $push: {
+            action: 'LOGOUT',
+            timestamp: new Date(),
+            deviceInfo: req.headers['user-agent']
+          }
+        }
+      }
+    });
+
+    res.json({
+      status_code: '200',
+      success: 'true',
+      msg: 'Logged out successfully'
+    });
 
   } catch (error) {
-      console.error('Error logging out:', error);
-      res.status(500).json({
-          status_code: '500',
-          success: 'false',
-          msg: 'Failed to logout',
-          error: error.message
-      });
+    console.error('Error logging out:', error);
+    res.status(500).json({
+      status_code: '500',
+      success: 'false',
+      msg: 'Failed to logout',
+      error: error.message
+    });
   }
 });
 
@@ -4745,179 +4811,179 @@ app.post('/api/users/logout', authenticateToken, async (req, res) => {
 // Track a visit
 app.post('/api/history', authenticateToken, async (req, res) => {
   try {
-      const { itemType, itemId } = req.body;
-      await Visit.create({ userId: req.user.id, itemType, itemId });
-      res.json({ success: true });
+    const { itemType, itemId } = req.body;
+    await Visit.create({ userId: req.user.id, itemType, itemId });
+    res.json({ success: true });
   } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Get visit history
 app.get('/api/history', authenticateToken, async (req, res) => {
   try {
-      const { type, page = 1, limit = 20 } = req.query;
-      const query = { userId: req.user.id };
-      if (type) query.itemType = type;
+    const { type, page = 1, limit = 20 } = req.query;
+    const query = { userId: req.user.id };
+    if (type) query.itemType = type;
 
-      const visits = await Visit.find(query)
-          .sort({ timestamp: -1 })
-          .skip((page - 1) * limit)
-          .limit(limit);
+    const visits = await Visit.find(query)
+      .sort({ timestamp: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
 
-      res.json({ success: true, data: visits });
+    res.json({ success: true, data: visits });
   } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Clear history
 app.delete('/api/history', authenticateToken, async (req, res) => {
   try {
-      const { type } = req.query;
-      const query = { userId: req.user.id };
-      if (type) query.itemType = type;
+    const { type } = req.query;
+    const query = { userId: req.user.id };
+    if (type) query.itemType = type;
 
-      await Visit.deleteMany(query);
-      res.json({ success: true });
+    await Visit.deleteMany(query);
+    res.json({ success: true });
   } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 
 app.post('/api/test/property-view-notification', async (req, res) => {
   try {
-      const { propertyId, testEmail } = req.body;
-      console.log('Starting notification test for property:', propertyId);
+    const { propertyId, testEmail } = req.body;
+    console.log('Starting notification test for property:', propertyId);
 
-      // Find the property
-      const property = await Property.findOne({ post_id: propertyId });
-      if (!property) {
-          return res.status(404).json({
-              success: false,
-              message: 'Property not found',
-              propertyId
-          });
-      }
-
-      // Check if property has an owner
-      if (!property.user_id) {
-          // Create a test user if none exists
-          const testUser = new User({
-              name: 'Test Owner',
-              email: testEmail || 'test@example.com',
-              phone: '1234567890',
-              loginType: 'TEST',
-              isPhoneVerified: true
-          });
-          await testUser.save();
-
-          // Assign the test user to the property
-          property.user_id = testUser._id;
-          await property.save();
-
-          console.log('Created test user and assigned to property:', {
-              userId: testUser._id,
-              propertyId: property.post_id
-          });
-      }
-
-      const testViewerInfo = {
-          viewerId: '123test',
-          viewerName: 'Test User',
-          viewerEmail: 'viewer@example.com',
-          viewerPhone: '9876543210',
-          viewerVerificationStatus: {
-              phone: true,
-              email: true
-          },
-          city: 'Test City',
-          region: 'Test Region',
-          country: 'Test Country',
-          timestamp: new Date()
-      };
-
-      // Initialize notification service
-      const notificationService = new PropertyViewNotificationService();
-      
-      // Call the service
-      await notificationService.handlePropertyView(propertyId, testViewerInfo);
-
-      res.json({
-          success: true,
-          message: 'Property view notification test initiated',
-          details: {
-              propertyId,
-              property: {
-                  title: property.post_title,
-                  owner: property.user_id
-              },
-              viewerInfo: testViewerInfo,
-              timestamp: new Date()
-          }
+    // Find the property
+    const property = await Property.findOne({ post_id: propertyId });
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found',
+        propertyId
       });
+    }
+
+    // Check if property has an owner
+    if (!property.user_id) {
+      // Create a test user if none exists
+      const testUser = new User({
+        name: 'Test Owner',
+        email: testEmail || 'test@example.com',
+        phone: '1234567890',
+        loginType: 'TEST',
+        isPhoneVerified: true
+      });
+      await testUser.save();
+
+      // Assign the test user to the property
+      property.user_id = testUser._id;
+      await property.save();
+
+      console.log('Created test user and assigned to property:', {
+        userId: testUser._id,
+        propertyId: property.post_id
+      });
+    }
+
+    const testViewerInfo = {
+      viewerId: '123test',
+      viewerName: 'Test User',
+      viewerEmail: 'viewer@example.com',
+      viewerPhone: '9876543210',
+      viewerVerificationStatus: {
+        phone: true,
+        email: true
+      },
+      city: 'Test City',
+      region: 'Test Region',
+      country: 'Test Country',
+      timestamp: new Date()
+    };
+
+    // Initialize notification service
+    const notificationService = new PropertyViewNotificationService();
+
+    // Call the service
+    await notificationService.handlePropertyView(propertyId, testViewerInfo);
+
+    res.json({
+      success: true,
+      message: 'Property view notification test initiated',
+      details: {
+        propertyId,
+        property: {
+          title: property.post_title,
+          owner: property.user_id
+        },
+        viewerInfo: testViewerInfo,
+        timestamp: new Date()
+      }
+    });
 
   } catch (error) {
-      console.error('Property notification test failed:', error);
-      res.status(500).json({
-          success: false,
-          message: 'Failed to send notification',
-          error: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
+    console.error('Property notification test failed:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send notification',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
 /* CURD with cities   */
-  // POST API for adding cities
-  app.post('/api/add-new-city', async (req, res) => {
-    try {
-      const { cities } = req.body;
+// POST API for adding cities
+app.post('/api/add-new-city', async (req, res) => {
+  try {
+    const { cities } = req.body;
 
-      if (!cities || !Array.isArray(cities)) {
-        return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
-      }
-
-      const citiesDocument = await Cities.findOne(); // will get all cities array of string from here
-      if (!citiesDocument) {
-        // If no document exists, create a new one with the provided cities
-        const newCitiesDocument = new Cities({ cities });
-        const savedDocument = await newCitiesDocument.save();
-        return res.status(201).json({ message: 'Cities added successfully', savedCities: cities });
-      }
-
-      // Filter duplicate and new cities
-      const existingCities = citiesDocument.cities.map(city => city.toLowerCase());
-      const newCities = [];
-      const duplicateCities = [];
-
-      cities.forEach(city => {
-        // if city already exists than push into duplicate array 
-        if (existingCities.includes(city.toLowerCase())) {
-          duplicateCities.push(city);
-        } else {
-          // else if already not exists then push into newCities array
-          newCities.push(city);
-        }
-      });
-
-      if (newCities.length > 0) {
-        // Add new cities to the database , if any 
-        citiesDocument.cities.push(...newCities);
-        await citiesDocument.save();
-      }
-
-      res.status(200).json({
-        message: 'Cities processed',
-        savedCities: newCities,
-        duplicateCities
-      });
-    } catch (error) {
-      console.error('Error adding cities:', error);
-      res.status(500).json({ message: 'An error occurred', error: error.message });
+    if (!cities || !Array.isArray(cities)) {
+      return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
     }
-  });
+
+    const citiesDocument = await Cities.findOne(); // will get all cities array of string from here
+    if (!citiesDocument) {
+      // If no document exists, create a new one with the provided cities
+      const newCitiesDocument = new Cities({ cities });
+      const savedDocument = await newCitiesDocument.save();
+      return res.status(201).json({ message: 'Cities added successfully', savedCities: cities });
+    }
+
+    // Filter duplicate and new cities
+    const existingCities = citiesDocument.cities.map(city => city.toLowerCase());
+    const newCities = [];
+    const duplicateCities = [];
+
+    cities.forEach(city => {
+      // if city already exists than push into duplicate array 
+      if (existingCities.includes(city.toLowerCase())) {
+        duplicateCities.push(city);
+      } else {
+        // else if already not exists then push into newCities array
+        newCities.push(city);
+      }
+    });
+
+    if (newCities.length > 0) {
+      // Add new cities to the database , if any 
+      citiesDocument.cities.push(...newCities);
+      await citiesDocument.save();
+    }
+
+    res.status(200).json({
+      message: 'Cities processed',
+      savedCities: newCities,
+      duplicateCities
+    });
+  } catch (error) {
+    console.error('Error adding cities:', error);
+    res.status(500).json({ message: 'An error occurred', error: error.message });
+  }
+});
 
 
 // GET API to fetch all cities
@@ -4948,6 +5014,7 @@ app.get('/api/get-all-cities', async (req, res) => {
 app.delete('/api/remove-cities', async (req, res) => {
   try {
     const { cities } = req.body;
+    console.log("cities to be delete", req.body)
 
     if (!cities || !Array.isArray(cities)) {
       return res.status(400).json({ message: 'Invalid input. "cities" should be an array.' });
@@ -4994,6 +5061,249 @@ app.delete('/api/remove-cities', async (req, res) => {
 });
 
 
+//
+app.get('/api/list-images', (req, res) => {
+  console.log("Ha hello")
+  const s3Params = {
+    Bucket: 'wityysaver',
+    Prefix: ''
+  };
+
+  s3.listObjectsV2(s3Params, (err, data) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: err });
+    }
+    const images = data.Contents
+      .filter(item => item.Key.match(/\.(jpg|jpeg|png|gif)$/i))
+      .map(item => `https://${s3Params.Bucket}.s3.amazonaws.com/${item.Key}`);
+    res.json(images);
+  });
+});
+
+
+app.post('/api/builders/:builderId/properties', async (req, res) => {
+  try {
+    const { builderId } = req.params;
+    const { propertyIds } = req.body; // Expect an array of property IDs
+
+    if (!Array.isArray(propertyIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'propertyIds must be an array'
+      });
+    }
+
+    console.log('Connecting properties:', propertyIds, 'to builder:', builderId);
+
+    // Find builder
+    const builder = await Builder.findById(builderId);
+    if (!builder) {
+      return res.status(404).json({
+        success: false,
+        error: 'Builder not found'
+      });
+    }
+
+    // Find all properties
+    const properties = await Property.find({
+      post_id: { $in: propertyIds }
+    });
+
+    console.log("Prop finds", properties)
+
+    // Check if all properties were found
+    const foundPropertyIds = properties.map(p => p.post_id);
+    const notFoundPropertyIds = propertyIds.filter(id => !foundPropertyIds.includes(id));
+
+    if (notFoundPropertyIds.length > 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Some properties not found',
+        notFoundProperties: notFoundPropertyIds
+      });
+    }
+
+    // Track success and failures
+    const results = {
+      successful: [],
+      alreadyConnected: [],
+      failed: []
+    };
+
+    // Process each property
+    for (const property of properties) {
+      try {
+        // Skip if already connected to this builder
+        if (property.builder && property.builder.toString() === builderId) {
+          results.alreadyConnected.push(property.post_id);
+          continue;
+        }
+
+        // Update property with builder reference
+        property.builder = builderId;
+        await property.save();
+
+        // Add to builder's properties array if not already present
+        if (!builder.properties.includes(property._id)) {
+          builder.properties.push(property._id);
+        }
+
+        results.successful.push(property.post_id);
+      } catch (error) {
+        console.error('Error connecting property:', property.post_id, error);
+        results.failed.push({
+          propertyId: property.post_id,
+          error: error.message
+        });
+      }
+    }
+
+    // Update builder statistics
+    builder.statistics = builder.statistics || {};
+    builder.statistics.totalProperties = builder.properties.length;
+    await builder.save();
+
+    // Send response based on results
+    const allSuccessful = results.failed.length === 0;
+    const statusCode = allSuccessful ? 200 : 207; // Use 207 Multi-Status if some operations failed
+
+    res.status(statusCode).json({
+      success: allSuccessful,
+      message: allSuccessful ? 'All properties connected successfully' : 'Some properties could not be connected',
+      results: {
+        totalProcessed: propertyIds.length,
+        successful: {
+          count: results.successful.length,
+          properties: results.successful
+        },
+        alreadyConnected: {
+          count: results.alreadyConnected.length,
+          properties: results.alreadyConnected
+        },
+        failed: {
+          count: results.failed.length,
+          properties: results.failed
+        }
+      },
+      builderStatistics: builder.statistics
+    });
+
+  } catch (error) {
+    console.error('Error in bulk property connection:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process property connections',
+      details: error.message
+    });
+  }
+});
+
+// Disconnect property from builder
+app.delete('/api/builders/:builderId/properties/:propertyId', async (req, res) => {
+  try {
+    const { builderId, propertyId } = req.params;
+    console.log('Disconnecting property:', propertyId, 'from builder:', builderId);
+
+    // Find builder and property
+    const builder = await Builder.findById(builderId);
+    const property = await Property.findOne({ post_id: propertyId });
+
+    if (!builder) {
+      console.log('Builder not found:', builderId);
+      return res.status(404).json({ error: 'Builder not found' });
+    }
+    if (!property) {
+      console.log('Property not found:', propertyId);
+      return res.status(404).json({ error: 'Property not found' });
+    }
+
+    // Remove property from builder's properties array
+    const propertyIndex = builder.properties.indexOf(property._id);
+    if (propertyIndex > -1) {
+      builder.properties.splice(propertyIndex, 1);
+      builder.statistics = builder.statistics || {};
+      builder.statistics.totalProperties = Math.max(0, (builder.statistics.totalProperties || 0) - 1);
+    }
+
+    // Remove builder reference from property
+    property.builder = undefined;
+
+    // Save both documents
+    await Promise.all([builder.save(), property.save()]);
+
+    console.log('Successfully disconnected property from builder');
+
+    res.json({
+      success: true,
+      message: 'Property disconnected successfully',
+      data: {
+        statistics: builder.statistics
+      }
+    });
+
+  } catch (error) {
+    console.error('Error disconnecting property from builder:', error);
+    res.status(500).json({
+      error: 'Failed to disconnect property from builder',
+      details: error.message
+    });
+  }
+});
+
+// Get all properties for a builder
+app.get('/api/builders/:builderId/properties', async (req, res) => {
+  try {
+    const { builderId } = req.params;
+    console.log('Fetching properties for builder:', builderId);
+
+    const builder = await Builder.findById(builderId)
+      .populate('properties');
+
+    if (!builder) {
+      console.log('Builder not found:', builderId);
+      return res.status(404).json({ error: 'Builder not found' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        builderId: builder._id,
+        properties: builder.properties.map(property => ({
+          id: property.post_id,
+          title: property.post_title,
+          type: property.type_name,
+          price: property.price,
+          location: property.address,
+          status: property.status
+        }))
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching builder properties:', error);
+    res.status(500).json({
+      error: 'Failed to fetch builder properties',
+      details: error.message
+    });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+app.use('/properties-interaction', propertyInteractionRoutes);
 
 // Initialize the server
 app.listen(PORT, () => {
@@ -5002,4 +5312,5 @@ app.listen(PORT, () => {
   Property.init().then(() => console.log('Indexes are ensured, including 2dsphere'));
 });
 
-/* new branch create  - Anurag-branch */
+// keys removed
+

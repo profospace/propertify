@@ -61,6 +61,8 @@ const colorGradientSchema = new mongoose.Schema({
   list_price_size: Number,
   markerColor: String,
   constantData: {
+    autoPlayAds : Boolean,
+    headerBackgroundImage : String,
     isPropertyUpload: Boolean,
     homeUrls: [String],
     isStrokeFilter: Boolean,
