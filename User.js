@@ -193,8 +193,7 @@ userSchema.methods.generateAuthToken = function() {
 };
 
 // Indexes (combined from both versions)
-userSchema.index({ phone: 1 });
-userSchema.index({ email: 1 });
+
 userSchema.index({ socialId: 1 });
 userSchema.index({ 'savedProperties.propertyId': 1 });
 userSchema.index({ 'history.viewedProperties.timestamp': -1 });
