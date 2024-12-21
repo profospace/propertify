@@ -5,10 +5,11 @@ sendgrid.env
 .env_2024*
 .bin
 .node_modules/
-
+.uploads/
 # Log files
 *.log
 .history/
+.uploads/
 
 # OS-specific files
 .DS_Store

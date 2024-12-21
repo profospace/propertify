@@ -38,6 +38,16 @@ const propertySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project'
   },
+  status:{
+    type : String,
+    enum : ['listed','unlisted','payment-delay','suspicious'],
+    default : 'unlisted',
+  },
+  city : {
+    type: String,
+    required : true
+  } ,
+  locality : String ,
   
   // Project-specific fields
   projectPhase: {
