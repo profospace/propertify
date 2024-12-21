@@ -9,6 +9,7 @@ sendgrid.env
 # Log files
 *.log
 .history/
+.uploads/
 
 # OS-specific files
 .DS_Store
