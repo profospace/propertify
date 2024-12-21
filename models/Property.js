@@ -12,7 +12,7 @@ const propertySchema = new mongoose.Schema({
   post_description: String,
   phone: String,
   address: String,
-  floor: String,
+  floor: Number,
   agreement: String,
   priceUnit: String,
   areaUnit: String,
@@ -38,6 +38,16 @@ const propertySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Project'
   },
+  status:{
+    type : String,
+    enum : ['listed','unlisted','payment-delay','suspicious'],
+    default : 'unlisted',
+  },
+  city : {
+    type: String,
+    required : true
+  } ,
+  locality : String ,
   
   // Project-specific fields
   projectPhase: {
