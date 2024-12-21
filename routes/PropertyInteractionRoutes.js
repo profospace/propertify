@@ -102,8 +102,8 @@ router.get('/api/interactions/stats', async (req, res) => {
                             timestamp: '$timestamp',
                             metadata: '$metadata',
                             user: {
-                                name: '$user.name',
-                                phone: '$user.phone'
+                                name: '$user.name'
+                            
                             }
                         }
                     },
@@ -193,8 +193,7 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
                     interactionType: 1,
                     timestamp: 1,
                     metadata: 1,
-                    'user.name': 1,
-                    'user.phone': 1
+                    'user.name': 1
                 }
             },
             { $sort: { timestamp: -1 } }
