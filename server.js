@@ -46,6 +46,20 @@ logger.configure({
   )
 });
 
+console.log("MONGODB_URI:", process.env.MONGODB_URI);
+const mongoURI = "mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority";
+
+
+// MongoDB Connection
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
+
+
 
 const util = require('util');
 
@@ -1269,17 +1283,6 @@ app.get('/api/colors', (req, res) => {
   // Send the color gradient data JSON object
   res.json(colorGradientData);
 });
-
-console.log("MONGODB_URI:", process.env.MONGODB_URI);
-
-
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.error("MongoDB connection error:", err));
 
 
 // Ensure the uploads directory exists
