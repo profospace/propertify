@@ -1270,9 +1270,11 @@ app.get('/api/colors', (req, res) => {
   res.json(colorGradientData);
 });
 
+console.log("MONGODB_URI:", process.env.MONGODB_URI);
+
 
 // MongoDB Connection
-mongoose.connect(process.env.mongodb_uri, {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
