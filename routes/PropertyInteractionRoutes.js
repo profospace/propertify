@@ -23,17 +23,17 @@ router.post('/api/interactions', async (req, res) => {
         await interaction.save();
 
         // Update user's history in User model if needed
-        if (interactionType === 'VISIT') {
-            await User.findByIdAndUpdate(req.user.id, {
-                $push: {
-                    'history.viewedProperties': {
-                        propertyId,
-                        timestamp: new Date(),
-                        timeSpent: metadata?.visitDuration
-                    }
-                }
-            });
-        }
+        // if (interactionType === 'VISIT') {
+        //     await User.findByIdAndUpdate(req.user.id, {
+        //         $push: {
+        //             'history.viewedProperties': {
+        //                 propertyId,
+        //                 timestamp: new Date(),
+        //                 timeSpent: metadata?.visitDuration
+        //             }
+        //         }
+        //     });
+        // }
 
         res.status(201).json({
             success: true,

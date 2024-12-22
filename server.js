@@ -175,7 +175,14 @@ app.use((req, res, next) => {
 const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || 'ap-south-1', // Specify default region
+  signatureVersion: 'v4'
 });
+
+// const s3 = new AWS.S3({
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+// });
 
 
 
@@ -374,16 +381,37 @@ app.delete('/api/buildings/:buildingId', async (req, res) => {
 
 
 // Modify existing verify-otp endpoint to handle both initial verification and updates
+
+
 app.post('/api/verify-otp', async (req, res) => {
   try {
     const { phoneNumber, otp, email } = req.body;
+    
+    console.log('Verification attempt:', {
+      phoneNumber,
+      otp,
+      email
+    });
 
     const otpDoc = await OTP.findOne({ phoneNumber });
+    console.log('Found OTP doc:', otpDoc);
 
-    if (!otpDoc || otpDoc.otp !== otp) {
+    if (!otpDoc) {
+      return res.status(400).json({
+        status_code: '400', 
+        success: 'false',
+        msg: 'No OTP found for this number - may have expired'
+      });
+    }
+
+    if (otpDoc.otp !== otp) {
+      console.log('OTP mismatch:', {
+        received: otp,
+        stored: otpDoc.otp
+      });
       return res.status(400).json({
         status_code: '400',
-        success: 'false',
+        success: 'false', 
         msg: 'Invalid OTP'
       });
     }
