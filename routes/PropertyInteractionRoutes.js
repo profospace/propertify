@@ -1,6 +1,10 @@
 const express = require('express')
 const router = express.Router()
 const PropertyInteraction = require("../models/PropertyInteraction");
+const mixpanel = require('mixpanel');
+
+// Initialize Mixpanel with your token
+const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54'); 
 
 router.post('/api/interactions', async (req, res) => {
     try {
@@ -21,6 +25,29 @@ router.post('/api/interactions', async (req, res) => {
         });
 
         await interaction.save();
+
+
+          // Send the interaction data to Mixpanel
+          mixpanelClient.track('Property Interaction', {
+            distinct_id: req.user.id, // Use the user ID to uniquely identify the user
+            property_id: propertyId,
+            interaction_type: interactionType,
+            metadata: metadata, // Include metadata (e.g., visitDuration, etc.)
+            timestamp: new Date().toISOString()
+        });
+
+        // Optionally, track additional user properties or interactions in Mixpanel
+        // Example: If interactionType is 'VISIT', you can also track page views
+        if (interactionType === 'VISIT') {
+            mixpanelClient.track('Property Visit', {
+                distinct_id: req.user.id,
+                property_id: propertyId,
+                visit_duration: metadata?.visitDuration || 0,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        //79ff92f256ca2a109638e7812a849f54
 
         // Update user's history in User model if needed
         // if (interactionType === 'VISIT') {
