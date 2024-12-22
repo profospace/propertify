@@ -51,12 +51,20 @@ const mongoURI = "mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mong
 
 
 // MongoDB Connection
-mongoose.connect(mongoURI, {
+mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
   .then(() => console.log("MongoDB Connected"))
   .catch(err => console.error("MongoDB connection error:", err));
+
+
+//   mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true
+// })
+//   .then(() => console.log("MongoDB Connected"))
+//   .catch(err => console.error("MongoDB connection error:", err));
 
 
 
