@@ -5310,16 +5310,23 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
       success: true,
       data: {
         builderId: builder._id,
-        properties: builder.properties.map(property => ({
-          id: property.post_id,
-          title: property.post_title,
-          type: property.type_name,
-          price: property.price,
-          location: property.address,
-          status: property.status
-        }))
+        properties: builder.properties
       }
     });
+    // res.json({
+    //   success: true,
+    //   data: {
+    //     builderId: builder._id,
+    //     properties: builder.properties.map(property => ({
+    //       id: property.post_id,
+    //       title: property.post_title,
+    //       type: property.type_name,
+    //       price: property.price,
+    //       location: property.address,
+    //       status: property.status
+    //     }))
+    //   }
+    // });
 
   } catch (error) {
     console.error('Error fetching builder properties:', error);
@@ -5334,6 +5341,35 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
 
 
 
+// put Api for property visit
+app.put('/api/properties/visit/:id', async (req, res) => {
+  console.log("Vsiitng Staus : " , req.params)
+  const { id } = req.params; // Property ID
+  const { incrementBy } = req.body; // Number to increment by
+
+  // if (typeof incrementBy !== 'number' || incrementBy <= 0) {
+  //   return res.status(400).json({ error: 'incrementBy must be a positive number' });
+  // }
+
+  try {
+    const property = await Property.findByIdAndUpdate(
+      {_id : id},
+      { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
+      { new: true, runValidators: true } // Return the updated document
+    );
+
+    console.log(property)
+
+    if (!property) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+
+    res.status(200).json({ message: 'Visit count updated', property });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'An error occurred while updating the visit count' });
+  }
+});
 
 
 

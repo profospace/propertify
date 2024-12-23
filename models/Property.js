@@ -24,6 +24,11 @@ const propertySchema = new mongoose.Schema({
   purpose: String,
   bedrooms: Number,
   bathrooms: Number,
+  visted : Number,
+  interaction : {
+    type:'String',
+    enum: ['VISIT', 'SAVE', 'CONTACT'],
+  },
   
   // Enhanced relationship fields
   builder: {
