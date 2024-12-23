@@ -63,6 +63,8 @@ router.post('/api/interactions', async (req, res) => {
                         timeSpent: metadata?.visitDuration
                     }
                 }
+            
+        })
             mixpanelClient.track('Property Visit', {
                 distinct_id: req.user.id,
                 property_id: propertyId,
@@ -70,7 +72,6 @@ router.post('/api/interactions', async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
-
         //79ff92f256ca2a109638e7812a849f54
 
         // Update user's history in User model if needed
