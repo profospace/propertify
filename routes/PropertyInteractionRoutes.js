@@ -1,8 +1,10 @@
 const express = require('express')
 const router = express.Router()
 const PropertyInteraction = require("../models/PropertyInteraction");
+const Property = require('../models/Property');
 
 router.post('/api/interactions', async (req, res) => {
+    console.log("Ineration stared")
     try {
         const {
             propertyId,
@@ -20,10 +22,17 @@ router.post('/api/interactions', async (req, res) => {
             }
         });
 
+        console.log('interaction', interaction)
         await interaction.save();
 
         // Update user's history in User model if needed
         if (interactionType === 'VISIT') {
+            const property = await Property.findByIdAndUpdate(
+                { _id: propertyId },
+                  { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
+                  { new: true, runValidators: true } // Return the updated document
+                );
+            
             await User.findByIdAndUpdate(req.user.id, {
                 $push: {
                     'history.viewedProperties': {
@@ -62,6 +71,7 @@ router.get('/api/interactions/stats', async (req, res) => {
         } = req.query;
 
         const query = {};
+        console.log(req.query)
 
         // Add date range filter if provided
         if (startDate || endDate) {
