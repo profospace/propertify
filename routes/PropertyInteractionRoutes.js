@@ -14,12 +14,8 @@ const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54');
 router.post('/api/interactions', authenticateToken, async (req, res) => {
     console.log("Ineration stared")
     try {
-
-        // User data is now available from the authenticateToken middleware
         const userId = req.user.id;
-
         console.log("user id received here " + userId)
-
         const {
             propertyId,
             interactionType,
@@ -29,7 +25,7 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
         console.log("property", propertyId)
 
         const interaction = new PropertyInteraction({
-            // userId: req.user.id,
+            userId: req.user.id,
             propertyId,
             interactionType,
             metadata: {
