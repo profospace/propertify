@@ -29,7 +29,7 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
         console.log("property", propertyId)
 
         const interaction = new PropertyInteraction({
-            // userId: req.user.id,
+            userId: req.user.id,
             propertyId,
             interactionType,
             metadata: {
