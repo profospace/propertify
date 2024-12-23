@@ -4,10 +4,10 @@ const PropertyInteraction = require("../models/PropertyInteraction");
 const Property = require('../models/Property');
 const mixpanel = require('mixpanel');
 const { authenticateToken } = require('../middleware/auth');
-const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54'); 
+const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54');
 // Initialize Mixpanel with your token
 // Add authentication middleware for all routes
-router.use(authenticateToken);
+// router.use(authenticateToken);
 router.post('/api/interactions', async (req, res) => {
     console.log("Ineration stared")
     try {
@@ -15,16 +15,18 @@ router.post('/api/interactions', async (req, res) => {
         // User data is now available from the authenticateToken middleware
         const userId = req.user.id;
 
-        console.log("user id received here "+ userId)
+        console.log("user id received here " + userId)
 
         const {
             propertyId,
             interactionType,
+            incrementBy,
             metadata
         } = req.body;
+        console.log("property", propertyId)
 
         const interaction = new PropertyInteraction({
-            userId: req.user.id,
+            // userId: req.user.id,
             propertyId,
             interactionType,
             metadata: {
@@ -37,8 +39,8 @@ router.post('/api/interactions', async (req, res) => {
         await interaction.save();
 
 
-          // Send the interaction data to Mixpanel
-          mixpanelClient.track('Property Interaction', {
+        // Send the interaction data to Mixpanel
+        mixpanelClient.track('Property Interaction', {
             distinct_id: req.user.id, // Use the user ID to uniquely identify the user
             property_id: propertyId,
             interaction_type: interactionType,
@@ -49,12 +51,20 @@ router.post('/api/interactions', async (req, res) => {
         // Optionally, track additional user properties or interactions in Mixpanel
         // Example: If interactionType is 'VISIT', you can also track page views
         if (interactionType === 'VISIT') {
-            const property = await Property.findByIdAndUpdate(
-                { _id: propertyId },
-                  { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
-                  { new: true, runValidators: true } // Return the updated document
-                );
-            
+            console.log("property", propertyId)
+            // const property = await Property.findByIdAndUpdate(
+            //     { propertyId },
+            //       { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
+            //       { new: true, runValidators: true } // Return the updated document
+            //     );
+
+            const property = await Property.findOneAndUpdate(
+                { propertyId: propertyId },
+                { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
+                { new: true, runValidators: true } // Return the updated document
+            );
+
+
             await User.findByIdAndUpdate(req.user.id, {
                 $push: {
                     'history.viewedProperties': {
@@ -63,8 +73,8 @@ router.post('/api/interactions', async (req, res) => {
                         timeSpent: metadata?.visitDuration
                     }
                 }
-            
-        })
+
+            })
             mixpanelClient.track('Property Visit', {
                 distinct_id: req.user.id,
                 property_id: propertyId,
@@ -156,7 +166,7 @@ router.get('/api/interactions/stats', async (req, res) => {
                             metadata: '$metadata',
                             user: {
                                 name: '$user.name'
-                            
+
                             }
                         }
                     },
