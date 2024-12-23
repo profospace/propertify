@@ -8,7 +8,10 @@ const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54');
 // Initialize Mixpanel with your token
 // Add authentication middleware for all routes
 // router.use(authenticateToken);
-router.post('/api/interactions', async (req, res) => {
+
+
+// router.use(authenticateToken);
+router.post('/api/interactions', authenticateToken, async (req, res) => {
     console.log("Ineration stared")
     try {
 
@@ -48,8 +51,10 @@ router.post('/api/interactions', async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
-        // Optionally, track additional user properties or interactions in Mixpanel
-        // Example: If interactionType is 'VISIT', you can also track page views
+   
+
+
+
         if (interactionType === 'VISIT') {
             console.log("property", propertyId)
             // const property = await Property.findByIdAndUpdate(
@@ -82,6 +87,9 @@ router.post('/api/interactions', async (req, res) => {
                 timestamp: new Date().toISOString()
             });
         }
+
+          
+
         //79ff92f256ca2a109638e7812a849f54
 
         // Update user's history in User model if needed
@@ -96,7 +104,7 @@ router.post('/api/interactions', async (req, res) => {
         //         }
         //     });
         // }
-
+    
         res.status(201).json({
             success: true,
             message: 'Interaction recorded successfully',
@@ -111,7 +119,9 @@ router.post('/api/interactions', async (req, res) => {
             error: error.message
         });
     }
+    
 });
+
 
 // API to get interaction statistics for dashboard
 router.get('/api/interactions/stats', async (req, res) => {
