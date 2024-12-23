@@ -22,13 +22,7 @@ Thumbs.db
 *.swp
 *.swo
 
-<<<<<<< HEAD
-
-node_modules
-node_modules/.*
-=======
 node_modules
 node_modules/*
 node_modules/.bin
 /.bin
->>>>>>> 07cd54c9becd2987d7090116c8ce4d6874be50ea

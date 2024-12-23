@@ -5,6 +5,7 @@ const Property = require('../models/Property');
 const mixpanel = require('mixpanel');
 const { authenticateToken } = require('../middleware/auth');
 const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54');
+const User = require('../User'); // Import the User model
 // Initialize Mixpanel with your token
 // Add authentication middleware for all routes
 // router.use(authenticateToken);
