@@ -133,6 +133,8 @@ router.get('/api/interactions/stats', async (req, res) => {
             }
         ]);
 
+        console.log("interactions B", interactions)
+
         // Format response for the dashboard
         const formattedResponse = interactions.map(item => ({
             propertyId: item._id.propertyId,
