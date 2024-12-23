@@ -2,12 +2,23 @@ const express = require('express')
 const router = express.Router()
 const PropertyInteraction = require("../models/PropertyInteraction");
 const mixpanel = require('mixpanel');
+const { authenticateToken } = require('../middleware/auth');
+const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54'); 
 
 // Initialize Mixpanel with your token
-const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54'); 
+
+// Add authentication middleware for all routes
+router.use(authenticateToken);
+
 
 router.post('/api/interactions', async (req, res) => {
     try {
+
+        // User data is now available from the authenticateToken middleware
+        const userId = req.user.id;
+
+        console.log("user id received here "+ userId)
+
         const {
             propertyId,
             interactionType,
