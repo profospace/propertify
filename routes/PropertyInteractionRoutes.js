@@ -16,6 +16,21 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
     console.log("Ineration stared")
     try {
         const userId = req.user.id;
+
+        const userDetails = await User.findById(req.user.id);
+        
+        if (userDetails) {
+            mixpanelClient.people.set(req.user.id, {
+                $email: userDetails.email,
+                $name: userDetails.name,
+                $phone: userDetails.phone,
+                $created: userDetails.createdAt,
+                login_type: userDetails.loginType,
+                last_login: new Date().toISOString()
+            });
+        }
+
+
         console.log("user id received here " + userId)
         const {
             propertyId,
@@ -48,23 +63,17 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
-   
-
-
-
         if (interactionType === 'VISIT') {
             console.log("property", propertyId)
-            // const property = await Property.findByIdAndUpdate(
-            //     { propertyId },
-            //       { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
-            //       { new: true, runValidators: true } // Return the updated document
-            //     );
 
             const property = await Property.findOneAndUpdate(
                 { propertyId: propertyId },
                 { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
                 { new: true, runValidators: true } // Return the updated document
             );
+            console.log("property id sent", propertyId)
+
+            console.log("property found out == == >>> ", property.post_title)
 
 
             await User.findByIdAndUpdate(req.user.id, {
@@ -83,12 +92,9 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
                 visit_duration: metadata?.visitDuration || 0,
                 timestamp: new Date().toISOString()
             });
-        }
-
-          
+        } 
 
         //79ff92f256ca2a109638e7812a849f54
-
         // Update user's history in User model if needed
         // if (interactionType === 'VISIT') {
         //     await User.findByIdAndUpdate(req.user.id, {
