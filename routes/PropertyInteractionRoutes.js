@@ -7,8 +7,10 @@ const { authenticateToken } = require('../middleware/auth');
 const mixpanelClient = mixpanel.init('79ff92f256ca2a109638e7812a849f54'); 
 // Initialize Mixpanel with your token
 // Add authentication middleware for all routes
-router.use(authenticateToken);
-router.post('/api/interactions', async (req, res) => {
+// router.use(authenticateToken);
+
+
+router.post('/api/interactions', authenticateToken, async (req, res) => {
     console.log("Ineration stared")
     try {
 
@@ -46,8 +48,10 @@ router.post('/api/interactions', async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
-        // Optionally, track additional user properties or interactions in Mixpanel
-        // Example: If interactionType is 'VISIT', you can also track page views
+   
+
+
+
         if (interactionType === 'VISIT') {
             const property = await Property.findByIdAndUpdate(
                 { _id: propertyId },
