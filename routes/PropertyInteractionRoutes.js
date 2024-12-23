@@ -62,13 +62,9 @@ router.post('/api/interactions', async (req, res) => {
                         timestamp: new Date(),
                         timeSpent: metadata?.visitDuration
                     }
-                }
-            mixpanelClient.track('Property Visit', {
-                distinct_id: req.user.id,
-                property_id: propertyId,
-                visit_duration: metadata?.visitDuration || 0,
-                timestamp: new Date().toISOString()
-            });
+                }});
+
+          
         }
 
         //79ff92f256ca2a109638e7812a849f54
