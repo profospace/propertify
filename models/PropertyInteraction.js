@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+
+
 const propertyInteractionSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,

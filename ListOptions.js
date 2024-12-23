@@ -44,7 +44,7 @@ module.exports = mongoose.model('ListOptions', listOptionsSchema);
 
 
 // MongoDB Connection
-mongoose.connect(process.env.mongodb_uri, {
+mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mongodb.net/?retryWrites=true&w=majority', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
@@ -100,5 +100,5 @@ async function createDummyEntries() {
 
 // Call this function to populate the database with dummy entries
 // createDummyEntries();
-
+//vhgvchvhv
 module.exports = ListOptions;
