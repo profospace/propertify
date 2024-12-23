@@ -22,6 +22,7 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
         const {
             propertyId,
             interactionType,
+            incrementBy,
             metadata
         } = req.body;
 
