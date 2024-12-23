@@ -67,9 +67,9 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             console.log("property", propertyId)
 
             const property = await Property.findOneAndUpdate(
-                { propertyId: propertyId },
-                { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
-                { new: true, runValidators: true } // Return the updated document
+                { post_id: propertyId },  // Changed to match schema
+                { $inc: { visted: incrementBy || 1 } },
+                { new: true, runValidators: true }
             );
             console.log("property id sent", propertyId)
 
