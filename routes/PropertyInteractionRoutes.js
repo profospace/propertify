@@ -16,10 +16,17 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
     console.log("Ineration stared")
     try {
         const userId = req.user.id;
-
         const userDetails = await User.findById(req.user.id);
-        
         if (userDetails) {
+            console.log('\nUser Details:');
+            console.log('Name:', userDetails.name);
+            console.log('Email:', userDetails.email);
+            console.log('Phone:', userDetails.phone);
+            console.log('Created At:', userDetails.createdAt);
+            console.log('Login Type:', userDetails.loginType);
+            console.log('Last Login:', new Date().toISOString());
+
+            
             mixpanelClient.people.set(req.user.id, {
                 $email: userDetails.email,
                 $name: userDetails.name,
@@ -29,6 +36,8 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
                 last_login: new Date().toISOString()
             });
         }
+
+            console.log('Mixpanel Data Being Set:', JSON.stringify(mixpanelData, null, 2));
 
 
         console.log("user id received here " + userId)
