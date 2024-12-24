@@ -132,7 +132,6 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             console.log('\n❌ User details not found for ID:', userId);
         }
 
-            console.log('Mixpanel Data Being Set:', JSON.stringify(mixpanelData, null, 2));
 
 
         console.log("user id received here " + userId)
