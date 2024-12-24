@@ -18,23 +18,118 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
         const userId = req.user.id;
         const userDetails = await User.findById(req.user.id);
         if (userDetails) {
-            console.log('\nUser Details:');
-            console.log('Name:', userDetails.name);
-            console.log('Email:', userDetails.email);
-            console.log('Phone:', userDetails.phone);
-            console.log('Created At:', userDetails.createdAt);
-            console.log('Login Type:', userDetails.loginType);
-            console.log('Last Login:', new Date().toISOString());
-
-            
-            mixpanelClient.people.set(req.user.id, {
+            console.log('\n========== USER DETAILS ==========');
+            console.log('Basic Information:');
+            console.log('- ID:', userId);
+            console.log('- Name:', userDetails.name);
+            console.log('- Email:', userDetails.email);
+            console.log('- Phone:', userDetails.phone);
+            console.log('- Created:', userDetails.createdAt);
+            console.log('- Login Type:', userDetails.loginType);
+            console.log('- Last Login:', userDetails.lastLogin);
+        
+            console.log('\nVerification Status:');
+            console.log('- Phone Verified:', userDetails.isPhoneVerified);
+            console.log('- Email Verified:', userDetails.verificationStatus?.email);
+            console.log('- Government Verified:', userDetails.verificationStatus?.government);
+        
+            console.log('\nProfile Details:');
+            console.log('- Gender:', userDetails.profile?.gender);
+            console.log('- Date of Birth:', userDetails.profile?.dateOfBirth);
+            console.log('- Avatar:', userDetails.profile?.avatar);
+        
+            if (userDetails.profile?.addressDetails) {
+                console.log('\nAddress:');
+                console.log('- Street:', userDetails.profile.addressDetails.street);
+                console.log('- City:', userDetails.profile.addressDetails.city);
+                console.log('- State:', userDetails.profile.addressDetails.state);
+                console.log('- Country:', userDetails.profile.addressDetails.country);
+                console.log('- Pincode:', userDetails.profile.addressDetails.pincode);
+            }
+        
+            if (userDetails.profile?.preferences) {
+                console.log('\nPreferences:');
+                console.log('- Property Types:', userDetails.profile.preferences.propertyTypes);
+                console.log('- Price Range:', userDetails.profile.preferences.priceRange);
+                console.log('- Preferred Locations:', userDetails.profile.preferences.preferredLocations);
+                console.log('- Amenities:', userDetails.profile.preferences.amenities);
+                console.log('- Property Size:', userDetails.profile.preferences.propertySize);
+            }
+        
+            console.log('\nActivity Counts:');
+            console.log('- Viewed Properties:', userDetails.history?.viewedProperties?.length || 0);
+            console.log('- Liked Properties:', userDetails.history?.likedProperties?.length || 0);
+            console.log('- Contacted Properties:', userDetails.history?.contactedProperties?.length || 0);
+            console.log('- Search History Count:', userDetails.history?.searchHistory?.length || 0);
+            console.log('- Saved Properties:', userDetails.savedProperties?.length || 0);
+            console.log('- Saved Searches:', userDetails.savedSearches?.length || 0);
+            console.log('- EMI Calculations:', userDetails.emiCalculations?.length || 0);
+        
+            if (userDetails.profile?.notifications) {
+                console.log('\nNotification Settings:');
+                console.log('- Email:', userDetails.profile.notifications.email);
+                console.log('- Push:', userDetails.profile.notifications.push);
+                console.log('- Price Alerts:', userDetails.profile.notifications.priceAlerts);
+                console.log('- Saved Search Alerts:', userDetails.profile.notifications.savedSearchAlerts);
+                console.log('- SMS:', userDetails.profile.notifications.smsNotifications);
+            }
+        
+            // Format data for Mixpanel
+            const address = userDetails.profile?.addressDetails;
+            const formattedAddress = address ? 
+                `${address.street || ''}, ${address.city || ''}, ${address.state || ''}, ${address.pincode || ''}`.trim() : '';
+        
+            const preferences = userDetails.profile?.preferences || {};
+            const priceRange = preferences.priceRange ? 
+                `${preferences.priceRange.min || 0} - ${preferences.priceRange.max || 0}` : '';
+        
+            const mixpanelData = {
                 $email: userDetails.email,
                 $name: userDetails.name,
                 $phone: userDetails.phone,
                 $created: userDetails.createdAt,
+                last_login: userDetails.lastLogin || new Date().toISOString(),
                 login_type: userDetails.loginType,
-                last_login: new Date().toISOString()
-            });
+                is_phone_verified: userDetails.isPhoneVerified,
+                email_verified: userDetails.verificationStatus?.email,
+                government_verified: userDetails.verificationStatus?.government,
+                gender: userDetails.profile?.gender,
+                date_of_birth: userDetails.profile?.dateOfBirth,
+                address: formattedAddress,
+                avatar: userDetails.profile?.avatar,
+                preferred_property_types: preferences.propertyTypes || [],
+                preferred_locations: preferences.preferredLocations || [],
+                preferred_amenities: preferences.amenities || [],
+                price_range: priceRange,
+                property_size_range: preferences.propertySize ? 
+                    `${preferences.propertySize.min || 0} - ${preferences.propertySize.max || 0} ${preferences.propertySize.unit || 'sq.ft'}` : '',
+                properties_viewed: userDetails.history?.viewedProperties?.length || 0,
+                properties_liked: userDetails.history?.likedProperties?.length || 0,
+                properties_contacted: userDetails.history?.contactedProperties?.length || 0,
+                search_count: userDetails.history?.searchHistory?.length || 0,
+                saved_searches_count: userDetails.savedSearches?.length || 0,
+                saved_properties_count: userDetails.savedProperties?.length || 0,
+                emi_calculations_count: userDetails.emiCalculations?.length || 0,
+                email_notifications: userDetails.profile?.notifications?.email,
+                push_notifications: userDetails.profile?.notifications?.push,
+                price_alerts: userDetails.profile?.notifications?.priceAlerts,
+                saved_search_alerts: userDetails.profile?.notifications?.savedSearchAlerts,
+                sms_notifications: userDetails.profile?.notifications?.smsNotifications,
+                last_property_view: userDetails.history?.viewedProperties?.[0]?.timestamp,
+                last_property_contact: userDetails.history?.contactedProperties?.[0]?.timestamp,
+                last_search: userDetails.history?.searchHistory?.[0]?.timestamp,
+                last_updated: new Date().toISOString()
+            };
+        
+            console.log('\n========== MIXPANEL DATA ==========');
+            console.log(JSON.stringify(mixpanelData, null, 2));
+        
+            // Set Mixpanel profile
+            mixpanelClient.people.set(userId, mixpanelData);
+            console.log('\nMixpanel profile updated successfully');
+            console.log('====================================\n');
+        } else {
+            console.log('\n❌ User details not found for ID:', userId);
         }
 
             console.log('Mixpanel Data Being Set:', JSON.stringify(mixpanelData, null, 2));
