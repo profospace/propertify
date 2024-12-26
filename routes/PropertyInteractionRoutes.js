@@ -386,21 +386,9 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
                     timestamp: 1,
                     metadata: 1,
                     phoneNumber: 1,
+                    email: 1,
                     location: 1,
-                    user: {
-                        name: '$user.name',
-                        phone: '$user.phone',
-                        email: '$user.email',
-                        profile: {
-                            gender: '$user.profile.gender',
-                            dateOfBirth: '$user.profile.dateOfBirth'
-                        },
-                        verificationStatus: {
-                            phone: '$user.isPhoneVerified',
-                            email: '$user.verificationStatus.email',
-                            government: '$user.verificationStatus.government'
-                        }
-                    }
+                    'user.name': 1
                 }
             },
             {
@@ -420,11 +408,7 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
                     }
                 }
             },
-            { 
-                $sort: { 
-                    timestamp: -1 
-                }
-            }
+            { $sort: { timestamp: -1 } }
         ]);
 
         // Format the response data
@@ -432,26 +416,29 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
             id: interaction._id,
             type: interaction.interactionType,
             timestamp: interaction.timestamp,
-            metadata: interaction.metadata,
-            user: {
-                name: interaction.user.name,
-                phone: interaction.user.phone,
-                email: interaction.user.email,
-                gender: interaction.user.profile.gender,
-                dateOfBirth: interaction.user.profile.dateOfBirth,
-                verification: interaction.user.verificationStatus
-            },
-            contact: {
+            userName: interaction.user.name,
+            contactInfo: {
                 phoneNumber: interaction.phoneNumber,
-                location: interaction.formattedLocation,
-                coordinates: interaction.location?.coordinates
+                email: interaction.email
             },
-            activity: {
-                deviceInfo: interaction.metadata?.deviceInfo,
+            location: {
+                formatted: interaction.formattedLocation,
+                details: {
+                    address: interaction.location.address,
+                    city: interaction.location.city,
+                    state: interaction.location.state,
+                    country: interaction.location.country,
+                    pincode: interaction.location.pincode,
+                    coordinates: interaction.location.coordinates
+                }
+            },
+            metadata: {
                 visitDuration: interaction.metadata?.visitDuration,
                 visitType: interaction.metadata?.visitType,
                 contactMethod: interaction.metadata?.contactMethod,
-                contactStatus: interaction.metadata?.contactStatus
+                contactStatus: interaction.metadata?.contactStatus,
+                deviceInfo: interaction.metadata?.deviceInfo,
+                location: interaction.metadata?.location
             }
         }));
 
