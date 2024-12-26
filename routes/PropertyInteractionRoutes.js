@@ -385,15 +385,80 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
                     interactionType: 1,
                     timestamp: 1,
                     metadata: 1,
-                    'user.name': 1
+                    phoneNumber: 1,
+                    location: 1,
+                    user: {
+                        name: '$user.name',
+                        phone: '$user.phone',
+                        email: '$user.email',
+                        profile: {
+                            gender: '$user.profile.gender',
+                            dateOfBirth: '$user.profile.dateOfBirth'
+                        },
+                        verificationStatus: {
+                            phone: '$user.isPhoneVerified',
+                            email: '$user.verificationStatus.email',
+                            government: '$user.verificationStatus.government'
+                        }
+                    }
                 }
             },
-            { $sort: { timestamp: -1 } }
+            {
+                $addFields: {
+                    formattedLocation: {
+                        $concat: [
+                            { $ifNull: ['$location.address', ''] },
+                            { $cond: [{ $ifNull: ['$location.city', false] }, ', ', ''] },
+                            { $ifNull: ['$location.city', ''] },
+                            { $cond: [{ $ifNull: ['$location.state', false] }, ', ', ''] },
+                            { $ifNull: ['$location.state', ''] },
+                            { $cond: [{ $ifNull: ['$location.country', false] }, ', ', ''] },
+                            { $ifNull: ['$location.country', ''] },
+                            { $cond: [{ $ifNull: ['$location.pincode', false] }, ' - ', ''] },
+                            { $ifNull: ['$location.pincode', ''] }
+                        ]
+                    }
+                }
+            },
+            { 
+                $sort: { 
+                    timestamp: -1 
+                }
+            }
         ]);
+
+        // Format the response data
+        const formattedInteractions = interactions.map(interaction => ({
+            id: interaction._id,
+            type: interaction.interactionType,
+            timestamp: interaction.timestamp,
+            metadata: interaction.metadata,
+            user: {
+                name: interaction.user.name,
+                phone: interaction.user.phone,
+                email: interaction.user.email,
+                gender: interaction.user.profile.gender,
+                dateOfBirth: interaction.user.profile.dateOfBirth,
+                verification: interaction.user.verificationStatus
+            },
+            contact: {
+                phoneNumber: interaction.phoneNumber,
+                location: interaction.formattedLocation,
+                coordinates: interaction.location?.coordinates
+            },
+            activity: {
+                deviceInfo: interaction.metadata?.deviceInfo,
+                visitDuration: interaction.metadata?.visitDuration,
+                visitType: interaction.metadata?.visitType,
+                contactMethod: interaction.metadata?.contactMethod,
+                contactStatus: interaction.metadata?.contactStatus
+            }
+        }));
 
         res.json({
             success: true,
-            data: interactions
+            count: formattedInteractions.length,
+            data: formattedInteractions
         });
 
     } catch (error) {
