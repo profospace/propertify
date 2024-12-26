@@ -68,7 +68,7 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
                 { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
                 { new: true, runValidators: true } // Return the updated document
             );
-            console.log("property", property)
+            console.log("property",property)
 
 
             await User.findByIdAndUpdate(req.user.id, {

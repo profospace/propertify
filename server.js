@@ -5443,6 +5443,7 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
 
 // put Api for property visit
 app.put('/api/properties/visit/:id', async (req, res) => {
+  console.log("visiting Status : " , req.params)
   console.log("Vsiitng Staus : ", req.params)
   const { id } = req.params; // Property ID
   const { incrementBy } = req.body; // Number to increment by

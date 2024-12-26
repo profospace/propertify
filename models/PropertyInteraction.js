@@ -17,6 +17,12 @@ const propertyInteractionSchema = new mongoose.Schema({
         enum: ['VISIT', 'SAVE', 'CONTACT'],
         required: true
     },
+    phone:{
+            type:String,
+        },
+        email:{
+            type:String
+        },
     timestamp: {
         type: Date,
         default: Date.now
@@ -42,6 +48,7 @@ const propertyInteractionSchema = new mongoose.Schema({
         deviceInfo: {
             type: String
         },
+        
         location: {
             type: {
                 type: String,
