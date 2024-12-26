@@ -147,14 +147,25 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             userId: req.user.id,
             propertyId,
             interactionType,
+            phoneNumber: userDetails.phone, // Add phone number from user details
+            email:userDetails.email,
+            location: {  // Add location from user's address details
+                address: userDetails.profile?.addressDetails?.street || '',
+                city: userDetails.profile?.addressDetails?.city || '',
+                state: userDetails.profile?.addressDetails?.state || '',
+                country: userDetails.profile?.addressDetails?.country || '',
+                pincode: userDetails.profile?.addressDetails?.pincode || '',
+                coordinates: metadata?.coordinates || [0, 0]
+            },
             metadata: {
                 ...metadata,
                 timestamp: new Date()
             }
         });
 
-        console.log('interaction', interaction)
         await interaction.save();
+
+        console.log('interaction', interaction)
 
 
         // Send the interaction data to Mixpanel
