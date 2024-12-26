@@ -386,7 +386,7 @@ app.delete('/api/buildings/:buildingId', async (req, res) => {
 app.post('/api/verify-otp', async (req, res) => {
   try {
     const { phoneNumber, otp, email } = req.body;
-    
+
     console.log('Verification attempt:', {
       phoneNumber,
       otp,
@@ -398,7 +398,7 @@ app.post('/api/verify-otp', async (req, res) => {
 
     if (!otpDoc) {
       return res.status(400).json({
-        status_code: '400', 
+        status_code: '400',
         success: 'false',
         msg: 'No OTP found for this number - may have expired'
       });
@@ -411,7 +411,7 @@ app.post('/api/verify-otp', async (req, res) => {
       });
       return res.status(400).json({
         status_code: '400',
-        success: 'false', 
+        success: 'false',
         msg: 'Invalid OTP'
       });
     }
@@ -2085,7 +2085,7 @@ app.put('/api/list-options/:listName', async (req, res) => {
     // Find the document and update it
     const updatedList = await ListOptions.findOneAndUpdate(
       { listName },
-      { $set: { categoryType: categoryType  , city , sectionType} },
+      { $set: { categoryType: categoryType, city, sectionType } },
       { new: true, runValidators: true }
     );
 
@@ -2576,7 +2576,7 @@ app.put('/api/properties/:id', async (req, res) => {
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
     console.log("body", req.body)
-    const { listName, sectionType,city, categoryType, title, headerImage, options } = req.body;
+    const { listName, sectionType, city, categoryType, title, headerImage, options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2599,7 +2599,7 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, categoryType,city, sectionType, title, headerImage, options });
+      const newListOption = new ListOptions({ listName, categoryType, city, sectionType, title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
@@ -3957,14 +3957,83 @@ const disconnectBuildingFromProject = async (req, res) => {
 };
 
 // Connect property to project
+// app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
+//   try {
+//     const { projectId, propertyId } = req.params;
+//     console.log('Connecting property:', propertyId, 'to project:', projectId);
+
+//     // Find project using projectId and property using post_id
+//     const project = await Project.findOne({projectId : projectId});
+//     const property = await Property.findOne({ post_id: propertyId });
+
+//     console.log(project , property)
+
+//     if (!project) {
+//       console.log('Project not found:', projectId);
+//       return res.status(404).json({ error: 'Project not found' });
+//     }
+//     if (!property) {
+//       console.log('Property not found:', propertyId);
+//       return res.status(404).json({ error: 'Property not found' });
+//     }
+
+//     // Check if property is already connected
+//     if (project.connectedProperties.includes(property._id)) {
+//       return res.status(400).json({ error: 'Property is already connected to this project' });
+//     }
+
+//     // Update project's connected properties array with the property's _id
+//     project.connectedProperties.push(property._id);
+
+//     // Update project statistics
+//     project.statistics = project.statistics || {};
+//     project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
+//     if (property.available) {
+//       project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
+//     }
+
+//     // Update property with project reference
+//     property.projectId = project._id;
+
+//     // Save both documents
+//     await Promise.all([
+//       project.save(),
+//       property.save()
+//     ]);
+
+//     console.log('Successfully connected property to project');
+
+//     res.json({
+//       success: true,
+//       message: 'Property connected successfully',
+//       data: {
+//         projectId: project._id,
+//         propertyId: property.post_id,
+//         statistics: project.statistics
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('Error connecting property to project:', error);
+//     res.status(500).json({
+//       error: 'Failed to connect property to project',
+//       details: error.message
+//     });
+//   }
+// });
+
+
+// connection api to connect project to properties
 app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
   try {
     const { projectId, propertyId } = req.params;
     console.log('Connecting property:', propertyId, 'to project:', projectId);
 
     // Find project using projectId and property using post_id
-    const project = await Project.findById(projectId);
+    const project = await Project.findOne({ projectId: projectId });
     const property = await Property.findOne({ post_id: propertyId });
+
+    console.log(project, property);
 
     if (!project) {
       console.log('Project not found:', projectId);
@@ -3973,6 +4042,21 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
     if (!property) {
       console.log('Property not found:', propertyId);
       return res.status(404).json({ error: 'Property not found' });
+    }
+
+    // Validate and update project coordinates if missing or invalid
+    if (!project.location.coordinates || !Array.isArray(project.location.coordinates) || project.location.coordinates.length !== 2) {
+      console.log('Invalid or missing project coordinates, updating...');
+
+      // Example: Fetch previous valid coordinates from the property or another source
+      const previousCoordinates = property.location?.coordinates; // Assuming property has valid coordinates
+
+      if (previousCoordinates && Array.isArray(previousCoordinates) && previousCoordinates.length === 2) {
+        project.location.coordinates = previousCoordinates;
+      } else {
+        console.log('No valid coordinates found to update');
+        return res.status(400).json({ error: 'Invalid project coordinates and no fallback found' });
+      }
     }
 
     // Check if property is already connected
@@ -3990,8 +4074,9 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
       project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
     }
 
+    console.log(project._id)
     // Update property with project reference
-    property.projectId = project._id;
+    property.project = project._id;
 
     // Save both documents
     await Promise.all([
@@ -4019,6 +4104,7 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
     });
   }
 });
+
 
 // Disconnect property from project
 app.delete('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
@@ -4086,7 +4172,7 @@ app.get('/api/projects/:projectId/properties', async (req, res) => {
     const { projectId } = req.params;
     console.log('Fetching properties for project:', projectId);
 
-    const project = await Project.findById(projectId)
+    const project = await Project.findOne({projectId:projectId})
       .populate('connectedProperties');
 
     if (!project) {
@@ -4097,7 +4183,10 @@ app.get('/api/projects/:projectId/properties', async (req, res) => {
     res.json({
       success: true,
       data: {
-        projectId: project._id,
+        project: {
+          name : project.name,
+          projectId: project.projectId
+        },
         properties: project.connectedProperties.map(property => ({
           id: property.post_id,
           title: property.post_title,
@@ -5298,8 +5387,19 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
     const { builderId } = req.params;
     console.log('Fetching properties for builder:', builderId);
 
+    // const builder = await Builder.findById(builderId)
+    //   .populate('properties');
+
     const builder = await Builder.findById(builderId)
-      .populate('properties');
+      .populate({
+        path: 'properties', // Populate the properties field
+        populate: {
+          path: 'project', // Populate the project field inside each property
+          model: 'Project', // Explicitly specify the model, optional if the schema reference is correct
+          select: 'name type status description' // Only include required fields, optional
+        }
+      });
+
 
     if (!builder) {
       console.log('Builder not found:', builderId);
@@ -5343,7 +5443,7 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
 
 // put Api for property visit
 app.put('/api/properties/visit/:id', async (req, res) => {
-  console.log("Vsiitng Staus : " , req.params)
+  console.log("Vsiitng Staus : ", req.params)
   const { id } = req.params; // Property ID
   const { incrementBy } = req.body; // Number to increment by
 
@@ -5353,8 +5453,8 @@ app.put('/api/properties/visit/:id', async (req, res) => {
 
   try {
     const property = await Property.findByIdAndUpdate(
-      {_id : id},
-      { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
+      { _id: id },
+      { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
       { new: true, runValidators: true } // Return the updated document
     );
 

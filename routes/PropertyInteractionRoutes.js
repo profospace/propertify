@@ -64,10 +64,11 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             //     );
 
             const property = await Property.findOneAndUpdate(
-                { propertyId: propertyId },
+                { post_id: propertyId },
                 { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
                 { new: true, runValidators: true } // Return the updated document
             );
+            console.log("property", property)
 
 
             await User.findByIdAndUpdate(req.user.id, {
