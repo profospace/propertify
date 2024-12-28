@@ -18,14 +18,14 @@ const optionSchema = new mongoose.Schema({
 
 // Define the schema for listOptions, which includes multiple lists
 const listOptionsSchema = new mongoose.Schema({
-  categoryType: { type: String, enum: ['carousal', 'carousalWithIndicator', 'centerCarousal', 'centerCarousalWithIndicator' ,'horizontal_list', 'single_item', 'grid_view', 'vertical_list'], default: 'horizontal_list', required: true },
+  categoryType: { type: String, enum: ['carousal', 'carousalWithIndicator', 'centerCarousal', 'centerCarousalWithIndicator', 'horizontal_list', 'single_item', 'grid_view', 'vertical_list'], default: 'horizontal_list', required: true },
   sectionType: { type: String, enum: ['banner', 'launch', 'search', 'userprofile', 'list', 'call'] },
   listName: {
     type: String,
     required: true,
     unique: true
   },
-  city : String,
+  city: String,
   title: {                // Added new field
     type: String,
     required: true
@@ -48,11 +48,11 @@ mongoose.connect('mongodb+srv://ofospace:bnmopbnmop%401010@cluster0.eb5nwll.mong
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => {
-  console.log("MongoDB Connected");
-  createDummyEntries(); // Call the function to create dummy entries
-})
-.catch(err => console.error("MongoDB connection error:", err));
+  .then(() => {
+    console.log("MongoDB Connected");
+    createDummyEntries(); // Call the function to create dummy entries
+  })
+  .catch(err => console.error("MongoDB connection error:", err));
 
 
 // Create the model

@@ -32,14 +32,25 @@ router.post('/api/interactions', authenticateToken, async (req, res) => {
             userId: req.user.id,
             propertyId,
             interactionType,
+            phoneNumber: userDetails.phone, // Add phone number from user details
+            email:userDetails.email,
+            location: {  // Add location from user's address details
+                address: userDetails.profile?.addressDetails?.street || '',
+                city: userDetails.profile?.addressDetails?.city || '',
+                state: userDetails.profile?.addressDetails?.state || '',
+                country: userDetails.profile?.addressDetails?.country || '',
+                pincode: userDetails.profile?.addressDetails?.pincode || '',
+                coordinates: metadata?.coordinates || [0, 0]
+            },
             metadata: {
                 ...metadata,
                 timestamp: new Date()
             }
         });
 
-        console.log('interaction', interaction)
         await interaction.save();
+
+        console.log('interaction', interaction)
 
 
         // Send the interaction data to Mixpanel
@@ -133,23 +144,23 @@ router.get('/api/interactions/stats', async (req, res) => {
             propertyId,
             interactionType
         } = req.query;
-
+ 
         const query = {};
         console.log(req.query)
-
+ 
         // Add date range filter if provided
         if (startDate || endDate) {
             query.timestamp = {};
             if (startDate) query.timestamp.$gte = new Date(startDate);
             if (endDate) query.timestamp.$lte = new Date(endDate);
         }
-
+ 
         // Add property filter if provided
         if (propertyId) query.propertyId = propertyId;
-
+ 
         // Add interaction type filter if provided
         if (interactionType) query.interactionType = interactionType;
-
+ 
         // Get interactions with user details
         const interactions = await PropertyInteraction.aggregate([
             { $match: query },
@@ -165,6 +176,23 @@ router.get('/api/interactions/stats', async (req, res) => {
                 $unwind: '$user'
             },
             {
+                $addFields: {
+                    formattedLocation: {
+                        $concat: [
+                            { $ifNull: ['$location.address', ''] },
+                            { $cond: [{ $ifNull: ['$location.city', false] }, ', ', ''] },
+                            { $ifNull: ['$location.city', ''] },
+                            { $cond: [{ $ifNull: ['$location.state', false] }, ', ', ''] },
+                            { $ifNull: ['$location.state', ''] },
+                            { $cond: [{ $ifNull: ['$location.country', false] }, ', ', ''] },
+                            { $ifNull: ['$location.country', ''] },
+                            { $cond: [{ $ifNull: ['$location.pincode', false] }, ' - ', ''] },
+                            { $ifNull: ['$location.pincode', ''] }
+                        ]
+                    }
+                }
+            },
+            {
                 $group: {
                     _id: {
                         propertyId: '$propertyId',
@@ -175,9 +203,14 @@ router.get('/api/interactions/stats', async (req, res) => {
                             type: '$interactionType',
                             timestamp: '$timestamp',
                             metadata: '$metadata',
+                            phoneNumber: '$phoneNumber',
+                            email: '$email',
+                            location: {
+                                formatted: '$formattedLocation',
+                                details: '$location'
+                            },
                             user: {
                                 name: '$user.name'
-
                             }
                         }
                     },
@@ -196,9 +229,9 @@ router.get('/api/interactions/stats', async (req, res) => {
                 $sort: { '_id.date': -1 }
             }
         ]);
-
+ 
         console.log("interactions B", interactions)
-
+ 
         // Format response for the dashboard
         const formattedResponse = interactions.map(item => ({
             propertyId: item._id.propertyId,
@@ -212,16 +245,27 @@ router.get('/api/interactions/stats', async (req, res) => {
                 type: interaction.type,
                 timestamp: interaction.timestamp,
                 userName: interaction.user.name,
-                userPhone: interaction.user.phone,
-                metadata: interaction.metadata
+                contactInfo: {
+                    phoneNumber: interaction.phoneNumber,
+                    email: interaction.email
+                },
+                location: interaction.location,
+                metadata: {
+                    visitDuration: interaction.metadata?.visitDuration,
+                    visitType: interaction.metadata?.visitType,
+                    contactMethod: interaction.metadata?.contactMethod,
+                    contactStatus: interaction.metadata?.contactStatus,
+                    deviceInfo: interaction.metadata?.deviceInfo,
+                    location: interaction.metadata?.location
+                }
             }))
         }));
-
+ 
         res.json({
             success: true,
             data: formattedResponse
         });
-
+ 
     } catch (error) {
         console.error('Error fetching interaction stats:', error);
         res.status(500).json({
@@ -230,7 +274,7 @@ router.get('/api/interactions/stats', async (req, res) => {
             error: error.message
         });
     }
-});
+ });
 
 // API to get detailed interactions for a specific property
 router.get('/api/interactions/:propertyId', async (req, res) => {
@@ -269,15 +313,67 @@ router.get('/api/interactions/:propertyId', async (req, res) => {
                     interactionType: 1,
                     timestamp: 1,
                     metadata: 1,
+                    phoneNumber: 1,
+                    email: 1,
+                    location: 1,
                     'user.name': 1
+                }
+            },
+            {
+                $addFields: {
+                    formattedLocation: {
+                        $concat: [
+                            { $ifNull: ['$location.address', ''] },
+                            { $cond: [{ $ifNull: ['$location.city', false] }, ', ', ''] },
+                            { $ifNull: ['$location.city', ''] },
+                            { $cond: [{ $ifNull: ['$location.state', false] }, ', ', ''] },
+                            { $ifNull: ['$location.state', ''] },
+                            { $cond: [{ $ifNull: ['$location.country', false] }, ', ', ''] },
+                            { $ifNull: ['$location.country', ''] },
+                            { $cond: [{ $ifNull: ['$location.pincode', false] }, ' - ', ''] },
+                            { $ifNull: ['$location.pincode', ''] }
+                        ]
+                    }
                 }
             },
             { $sort: { timestamp: -1 } }
         ]);
 
+        // Format the response data
+        const formattedInteractions = interactions.map(interaction => ({
+            id: interaction._id,
+            type: interaction.interactionType,
+            timestamp: interaction.timestamp,
+            userName: interaction.user.name,
+            contactInfo: {
+                phoneNumber: interaction.phoneNumber,
+                email: interaction.email
+            },
+            location: {
+                formatted: interaction.formattedLocation,
+                details: {
+                    address: interaction.location.address,
+                    city: interaction.location.city,
+                    state: interaction.location.state,
+                    country: interaction.location.country,
+                    pincode: interaction.location.pincode,
+                    coordinates: interaction.location.coordinates
+                }
+            },
+            metadata: {
+                visitDuration: interaction.metadata?.visitDuration,
+                visitType: interaction.metadata?.visitType,
+                contactMethod: interaction.metadata?.contactMethod,
+                contactStatus: interaction.metadata?.contactStatus,
+                deviceInfo: interaction.metadata?.deviceInfo,
+                location: interaction.metadata?.location
+            }
+        }));
+
         res.json({
             success: true,
-            data: interactions
+            count: formattedInteractions.length,
+            data: formattedInteractions
         });
 
     } catch (error) {

@@ -17,12 +17,24 @@ const propertyInteractionSchema = new mongoose.Schema({
         enum: ['VISIT', 'SAVE', 'CONTACT'],
         required: true
     },
-    phone:{
-            type:String,
-        },
-        email:{
-            type:String
-        },
+    phoneNumber: {  // Added phone number field
+        type: String
+    },
+    email: {
+        type: String
+    },
+
+    location: {     // Added detailed location field
+        address: String,
+        city: String,
+        state: String,
+        country: String,
+        pincode: String,
+        coordinates: {
+            type: [Number],
+            default: [0, 0]
+        }
+    },
     timestamp: {
         type: Date,
         default: Date.now

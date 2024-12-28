@@ -63,6 +63,11 @@ const colorGradientSchema = new mongoose.Schema({
   constantData: {
     autoPlayAds : Boolean,
     headerBackgroundImage : String,
+    progressGif:String,
+    listEndImage: String,
+    listAds: String,
+    searchAds: String,
+    maxListAds: String,
     isPropertyUpload: Boolean,
     homeUrls: [String],
     isStrokeFilter: Boolean,
