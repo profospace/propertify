@@ -2514,18 +2514,52 @@ app.get('/api/properties/filter', async (req, res) => {
     // Geospatial query using $geoNear
     console.log(req.query.radius, "RADIUS");
     if (latitude && longitude) {
-      const radiusInKm = Number(radius) || 50; // Default 50km if not specified as per original code
+      const lat = Number(latitude);
+      const lng = Number(longitude);
+      const radiusInKm = Number(radius) || 50; // Default 50km if not specified
+      
+      console.log('Search coordinates:', { lat, lng });
+      console.log('Search radius (km):', radiusInKm);
+
+      // First, let's verify if properties have correct location data
+      const sampleProperties = await Property.find({}).limit(5).select('location latitude longitude');
+      console.log('Sample property locations:', sampleProperties);
+      
+      // Use the basic distance calculation first
       aggregationPipeline.push({
         $geoNear: {
           near: {
             type: "Point",
-            coordinates: [Number(longitude), Number(latitude)]
+            coordinates: [lng, lat]
           },
           distanceField: "distance",
           maxDistance: radiusInKm * 1000, // Convert km to meters
           distanceMultiplier: 0.001, // Convert distance from meters to kilometers
           spherical: true,
-          key: "location"
+          query: {
+            $and: [
+              // Add a rough bounding box filter first
+              { 
+                latitude: { 
+                  $gte: lat - (radiusInKm / 111.32),
+                  $lte: lat + (radiusInKm / 111.32)
+                }
+              },
+              {
+                longitude: {
+                  $gte: lng - (radiusInKm / (111.32 * Math.cos(lat * Math.PI / 180))),
+                  $lte: lng + (radiusInKm / (111.32 * Math.cos(lat * Math.PI / 180)))
+                }
+              }
+            ]
+          }
+        }
+      });
+
+      // Add a distance verification stage
+      aggregationPipeline.push({
+        $match: {
+          distance: { $lte: radiusInKm }
         }
       });
     }
