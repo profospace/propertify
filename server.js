@@ -2671,6 +2671,39 @@ app.get('/api/properties/filter', async (req, res) => {
 });
 
 
+async function updateAllPropertyLocations() {
+  try {
+    const properties = await Property.find({});
+    let updated = 0;
+    
+    for (const property of properties) {
+      if (property.latitude && property.longitude) {
+        property.location = {
+          type: 'Point',
+          coordinates: [property.longitude, property.latitude] // MongoDB expects [longitude, latitude]
+        };
+        await property.save();
+        updated++;
+      }
+    }
+    
+    console.log(`Updated ${updated} properties with correct location data`);
+  } catch (error) {
+    console.error('Error updating property locations:', error);
+  }
+}
+
+// Helper function to verify if a location is valid
+function isValidLocation(lat, lng) {
+  return (
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180
+  );
+}
+
+
 
 
 
