@@ -3781,6 +3781,62 @@ app.get('/builders', async (req, res) => {
   }
 });
 
+// Get all builder - with username and password info
+app.get('/builders/info' , async(req,res)=>{
+  try {
+    const builders = await Builder.find()
+      .select('name username password logo experience stats ratings')
+      .lean();
+    res.json(builders);
+    
+  } catch (error) {
+    
+    res.status(500).json({ error: error.message });
+  }
+})
+
+// builder password reset apI , IF not have password then username and password field created
+// Function to generate a random password
+function generateRandomPassword(length = 8) {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return password;
+}
+
+// Password reset API , we will use _id to reset or create new one
+app.post('/builder/reset-password/:builderId', async (req, res) => {
+  try {
+    const builderId = req.params.builderId;
+
+    // Find the builder by ID
+    const builder = await Builder.findById(builderId);
+    if (!builder) {
+      return res.status(404).json({ message: 'Builder not found' });
+    }
+
+    // If the builder doesn't have a password, generate a new one
+    if (!builder.password) {
+      const newPassword = generateRandomPassword();
+      builder.password = newPassword;
+
+      // Save the updated builder document
+      await builder.save();
+
+      // Send the new password (you may want to email it to the builder instead)
+      return res.status(200).json({ message: 'Password has been reset', newPassword: newPassword });
+    } else {
+      return res.status(400).json({ message: 'Builder already has a password' });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 // Get builder details by ID
 app.get('/builders/:id', async (req, res) => {
   try {
