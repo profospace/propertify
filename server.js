@@ -3773,7 +3773,7 @@ app.put('/buildings/:buildingId/builder', async (req, res) => {
 app.get('/builders', async (req, res) => {
   try {
     const builders = await Builder.find()
-      .select('name logo experience stats ratings')
+      .select('name username logo experience stats ratings')
       .lean();
     res.json(builders);
   } catch (error) {

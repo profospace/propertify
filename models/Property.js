@@ -81,6 +81,10 @@ const propertySchema = new mongoose.Schema({
   furnishing: String,
   amenities: [String],
   price: Number,
+  priceOnRequest :{
+    type:Boolean,
+    default : false
+  },
   verified: Boolean,
   post_image: String,
   floor_plan_image: String,

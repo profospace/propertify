@@ -5,6 +5,13 @@ const builderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    username:{
+        type:String,
+    },
+    password:{
+        type: String,
+        select : false , // to avoid passsword in any resposne
+    },
     company: {
         type: String
     },
@@ -77,6 +84,40 @@ builderSchema.virtual('activeProjects', {
     foreignField: 'builder',
     match: { status: 'UNDER_CONSTRUCTION' }
 });
+
+// Pre middleware to generate username and password at the time of creation of new Builder
+
+// Function to generate a random password
+function generateRandomPassword(length = 8) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let password = '';
+    for (let i = 0; i < length; i++) {
+        password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return password;
+}
+
+// Function to generate a username
+function generateUsername(name) {
+    if (!name) return 'user' + Math.floor(1000 + Math.random() * 9000); // Default if name is missing
+    const sanitized = name.replace(/\s+/g, '').toLowerCase(); // Remove spaces and convert to lowercase
+    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit random number
+    return sanitized + randomNumber;
+}
+
+// Pre-save middleware to generate username and password
+builderSchema.pre('save', function (next) {
+    // Only generate username if it doesn't exist
+    if (!this.username) {
+        this.username = generateUsername(this.name);
+    }
+    // Only generate password if it doesn't exist
+    if (!this.password) {
+        this.password = generateRandomPassword();
+    }
+    next();
+});
+
 
 // Middleware to update statistics when referenced documents change
 builderSchema.methods.updateStatistics = async function() {
