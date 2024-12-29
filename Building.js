@@ -28,7 +28,6 @@ const buildingSchema = new mongoose.Schema({
     builder: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Builder',
-        required: true
     },
     project: {
         type: mongoose.Schema.Types.ObjectId,

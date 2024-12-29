@@ -60,6 +60,7 @@ const propertyInteractionSchema = new mongoose.Schema({
         deviceInfo: {
             type: String
         },
+        
         location: {
             type: {
                 type: String,

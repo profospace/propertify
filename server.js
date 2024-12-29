@@ -386,7 +386,7 @@ app.delete('/api/buildings/:buildingId', async (req, res) => {
 app.post('/api/verify-otp', async (req, res) => {
   try {
     const { phoneNumber, otp, email } = req.body;
-    
+
     console.log('Verification attempt:', {
       phoneNumber,
       otp,
@@ -398,7 +398,7 @@ app.post('/api/verify-otp', async (req, res) => {
 
     if (!otpDoc) {
       return res.status(400).json({
-        status_code: '400', 
+        status_code: '400',
         success: 'false',
         msg: 'No OTP found for this number - may have expired'
       });
@@ -411,7 +411,7 @@ app.post('/api/verify-otp', async (req, res) => {
       });
       return res.status(400).json({
         status_code: '400',
-        success: 'false', 
+        success: 'false',
         msg: 'Invalid OTP'
       });
     }
@@ -1852,6 +1852,7 @@ app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryLi
           Key: `gallery_images/${uuid.v4()}_${galleryImageFile.originalname}`,
           Body: fs.createReadStream(galleryImageFile.path),
         };
+        
         const galleryImageUploadResult = await s3.upload(galleryImageParams).promise();
         uploadedImages.push(galleryImageUploadResult.Location);
       }
@@ -1877,8 +1878,15 @@ app.post('/api/buildings/saveBuildingDetails', upload.fields([{ name: 'galleryLi
     }
 
     // Handle connectedProperties (assuming these are Property IDs)
+    // if (Array.isArray(BuildingData.connectedProperties)) {
+    //   BuildingData.connectedProperties = BuildingData.connectedProperties.map(id => new mongoose.Types.ObjectId(id));
+    // }
+
+    // Handle connectedProperties (assuming these are Property IDs)
     if (Array.isArray(BuildingData.connectedProperties)) {
-      BuildingData.connectedProperties = BuildingData.connectedProperties.map(id => mongoose.Types.ObjectId(id));
+      BuildingData.connectedProperties = BuildingData.connectedProperties
+        .filter(id => mongoose.isValidObjectId(id)) // Validate each ID
+        .map(id => new mongoose.Types.ObjectId(id));
     }
 
     console.log('Building data with updated fields:', BuildingData);
@@ -2085,7 +2093,7 @@ app.put('/api/list-options/:listName', async (req, res) => {
     // Find the document and update it
     const updatedList = await ListOptions.findOneAndUpdate(
       { listName },
-      { $set: { categoryType: categoryType  , city , sectionType} },
+      { $set: { categoryType: categoryType, city, sectionType } },
       { new: true, runValidators: true }
     );
 
@@ -2251,6 +2259,7 @@ app.get('/api/buildings/:buildingId', async (req, res) => {
 
 
 // Endpoint to upload a new property with images ===============================//
+// Upload Property
 app.post('/api/upload/property', upload.fields([
   { name: 'post_image', maxCount: 1 },
   { name: 'floor_plan_image', maxCount: 1 },
@@ -2756,7 +2765,7 @@ app.put('/api/properties/:id', async (req, res) => {
 app.post('/api/list-options/add-complete', async (req, res) => {
   try {
     console.log("body", req.body)
-    const { listName, sectionType,city, categoryType, title, headerImage, options } = req.body;
+    const { listName, sectionType, city, categoryType, title, headerImage, options } = req.body;
 
     if (!listName || typeof listName !== 'string') {
       return res.status(400).json({ message: 'listName must be a non-empty string' });
@@ -2779,7 +2788,7 @@ app.post('/api/list-options/add-complete', async (req, res) => {
       });
     } else {
       // If the list doesn't exist, create a new one
-      const newListOption = new ListOptions({ listName, categoryType,city, sectionType, title, headerImage, options });
+      const newListOption = new ListOptions({ listName, categoryType, city, sectionType, title, headerImage, options });
       await newListOption.save();
       res.status(201).json({
         message: 'List created successfully',
@@ -3453,170 +3462,172 @@ app.post('/api/carousels/bulk-delete', async (req, res) => {
 
 // AWS S3 initialization
 
-app.post('/api/buildings/saveBuildingDetails', upload.fields([
-  { name: 'galleryList', maxCount: 5 }
-]), async (req, res) => {
-  try {
-    console.log('Received request to save building details');
 
-    const buildingData = JSON.parse(req.body.data || '{}');
-    console.log('Parsed building data:', buildingData);
+// Upload Building
+// app.post('/api/buildings/saveBuildingDetails', upload.fields([
+//   { name: 'galleryList', maxCount: 5 }
+// ]), async (req, res) => {
+//   try {
+//     console.log('Received request to save building details');
 
-    // Input validation
-    if (!buildingData.buildingId || !buildingData.name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Building ID and name are required'
-      });
-    }
+//     const buildingData = JSON.parse(req.body.data || '{}');
+//     console.log('Parsed building data:', buildingData);
 
-    // Upload images to S3
-    const uploadedImages = [];
-    if (req.files && req.files['galleryList']) {
-      const files = Array.isArray(req.files['galleryList'])
-        ? req.files['galleryList']
-        : [req.files['galleryList']];
+//     // Input validation
+//     if (!buildingData.buildingId || !buildingData.name) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Building ID and name are required'
+//       });
+//     }
 
-      console.log('Processing gallery images:', files.length);
+//     // Upload images to S3
+//     const uploadedImages = [];
+//     if (req.files && req.files['galleryList']) {
+//       const files = Array.isArray(req.files['galleryList'])
+//         ? req.files['galleryList']
+//         : [req.files['galleryList']];
 
-      for (const file of files) {
-        try {
-          // Validate file type
-          if (!file.mimetype.startsWith('image/')) {
-            console.log('Skipping non-image file:', file.originalname);
-            continue;
-          }
+//       console.log('Processing gallery images:', files.length);
 
-          // Size validation
-          const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-          if (file.size > MAX_SIZE) {
-            console.log('Skipping large file:', file.originalname);
-            continue;
-          }
+//       for (const file of files) {
+//         try {
+//           // Validate file type
+//           if (!file.mimetype.startsWith('image/')) {
+//             console.log('Skipping non-image file:', file.originalname);
+//             continue;
+//           }
 
-          const s3Params = {
-            Bucket: process.env.AWS_BUCKET_NAME,
-            Key: `buildings/${buildingData.buildingId}/gallery/${uuid.v4()}-${file.originalname}`,
-            Body: fs.createReadStream(file.path),
-            ContentType: file.mimetype,
-            ACL: 'public-read'
-          };
+//           // Size validation
+//           const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+//           if (file.size > MAX_SIZE) {
+//             console.log('Skipping large file:', file.originalname);
+//             continue;
+//           }
 
-          const uploadResult = await s3.upload(s3Params).promise();
-          uploadedImages.push(uploadResult.Location);
-          console.log('Successfully uploaded:', uploadResult.Location);
+//           const s3Params = {
+//             Bucket: process.env.AWS_BUCKET_NAME,
+//             Key: `buildings/${buildingData.buildingId}/gallery/${uuid.v4()}-${file.originalname}`,
+//             Body: fs.createReadStream(file.path),
+//             ContentType: file.mimetype,
+//             ACL: 'public-read'
+//           };
 
-          // Clean up temp file
-          fs.unlinkSync(file.path);
-        } catch (uploadError) {
-          console.error('Error uploading file:', uploadError);
-          // Continue with other files if one fails
-        }
-      }
-    }
+//           const uploadResult = await s3.upload(s3Params).promise();
+//           uploadedImages.push(uploadResult.Location);
+//           console.log('Successfully uploaded:', uploadResult.Location);
 
-    // Add uploaded images to building data
-    buildingData.galleryList = uploadedImages;
+//           // Clean up temp file
+//           fs.unlinkSync(file.path);
+//         } catch (uploadError) {
+//           console.error('Error uploading file:', uploadError);
+//           // Continue with other files if one fails
+//         }
+//       }
+//     }
 
-    // Format numeric fields
-    buildingData.numberOfFlatsAvailable = parseInt(buildingData.numberOfFlatsAvailable) || 0;
-    buildingData.totalFloors = parseInt(buildingData.totalFloors) || 0;
+//     // Add uploaded images to building data
+//     buildingData.galleryList = uploadedImages;
 
-    // Format flatsDetails array
-    if (Array.isArray(buildingData.flatsDetails)) {
-      buildingData.flatsDetails = buildingData.flatsDetails.map(detail => ({
-        floorNumber: parseInt(detail.floorNumber) || 0,
-        flatsOnFloor: parseInt(detail.flatsOnFloor) || 0,
-        availableFlats: parseInt(detail.availableFlats) || 0
-      }));
+//     // Format numeric fields
+//     buildingData.numberOfFlatsAvailable = parseInt(buildingData.numberOfFlatsAvailable) || 0;
+//     buildingData.totalFloors = parseInt(buildingData.totalFloors) || 0;
 
-      // Validate flats consistency
-      const totalFlats = buildingData.flatsDetails.reduce((sum, floor) =>
-        sum + floor.flatsOnFloor, 0);
-      const totalAvailable = buildingData.flatsDetails.reduce((sum, floor) =>
-        sum + floor.availableFlats, 0);
+//     // Format flatsDetails array
+//     if (Array.isArray(buildingData.flatsDetails)) {
+//       buildingData.flatsDetails = buildingData.flatsDetails.map(detail => ({
+//         floorNumber: parseInt(detail.floorNumber) || 0,
+//         flatsOnFloor: parseInt(detail.flatsOnFloor) || 0,
+//         availableFlats: parseInt(detail.availableFlats) || 0
+//       }));
 
-      if (totalAvailable > totalFlats) {
-        return res.status(400).json({
-          success: false,
-          message: 'Available flats cannot exceed total flats'
-        });
-      }
-    }
+//       // Validate flats consistency
+//       const totalFlats = buildingData.flatsDetails.reduce((sum, floor) =>
+//         sum + floor.flatsOnFloor, 0);
+//       const totalAvailable = buildingData.flatsDetails.reduce((sum, floor) =>
+//         sum + floor.availableFlats, 0);
 
-    // Format location data
-    if (buildingData.location && buildingData.location.coordinates) {
-      buildingData.location = {
-        type: 'Point',
-        coordinates: [
-          parseFloat(buildingData.location.coordinates[0]),
-          parseFloat(buildingData.location.coordinates[1])
-        ]
-      };
-    }
+//       if (totalAvailable > totalFlats) {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Available flats cannot exceed total flats'
+//         });
+//       }
+//     }
 
-    // Handle builder reference
-    if (buildingData.builderId) {
-      const builder = await Builder.findById(buildingData.builderId);
-      if (!builder) {
-        return res.status(404).json({
-          success: false,
-          message: 'Builder not found'
-        });
-      }
-      buildingData.builder = buildingData.builderId;
-    }
+//     // Format location data
+//     if (buildingData.location && buildingData.location.coordinates) {
+//       buildingData.location = {
+//         type: 'Point',
+//         coordinates: [
+//           parseFloat(buildingData.location.coordinates[0]),
+//           parseFloat(buildingData.location.coordinates[1])
+//         ]
+//       };
+//     }
 
-    // Clean up empty arrays
-    if (buildingData.connectedProperties) {
-      buildingData.connectedProperties = buildingData.connectedProperties
-        .filter(id => id && id !== '')
-        .map(id => mongoose.Types.ObjectId(id));
-    }
+//     // Handle builder reference
+//     if (buildingData.builderId) {
+//       const builder = await Builder.findById(buildingData.builderId);
+//       if (!builder) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'Builder not found'
+//         });
+//       }
+//       buildingData.builder = buildingData.builderId;
+//     }
 
-    // Create and save building
-    const newBuilding = new Building(buildingData);
-    await newBuilding.save();
+//     // Clean up empty arrays
+//     if (buildingData.connectedProperties) {
+//       buildingData.connectedProperties = buildingData.connectedProperties
+//         .filter(id => id && id !== '')
+//         .map(id => mongoose.Types.ObjectId(id));
+//     }
 
-    // Update builder's buildings array if builder exists
-    if (buildingData.builderId) {
-      await Builder.findByIdAndUpdate(
-        buildingData.builderId,
-        {
-          $addToSet: { buildings: newBuilding._id },
-          $inc: { 'stats.totalBuildings': 1 }
-        },
-        { new: true }
-      );
-    }
+//     // Create and save building
+//     const newBuilding = new Building(buildingData);
+//     await newBuilding.save();
 
-    console.log('Building saved successfully:', newBuilding._id);
+//     // Update builder's buildings array if builder exists
+//     if (buildingData.builderId) {
+//       await Builder.findByIdAndUpdate(
+//         buildingData.builderId,
+//         {
+//           $addToSet: { buildings: newBuilding._id },
+//           $inc: { 'stats.totalBuildings': 1 }
+//         },
+//         { new: true }
+//       );
+//     }
 
-    res.status(201).json({
-      success: true,
-      message: 'Building saved successfully',
-      data: newBuilding
-    });
+//     console.log('Building saved successfully:', newBuilding._id);
 
-  } catch (error) {
-    console.error('Error saving building details:', error);
+//     res.status(201).json({
+//       success: true,
+//       message: 'Building saved successfully',
+//       data: newBuilding
+//     });
 
-    // Clean up any uploaded files in case of error
-    if (req.files) {
-      Object.values(req.files).flat().forEach(file => {
-        if (fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      });
-    }
+//   } catch (error) {
+//     console.error('Error saving building details:', error);
 
-    res.status(500).json({
-      success: false,
-      message: 'Error saving building details',
-      error: error.message
-    });
-  }
-});
+//     // Clean up any uploaded files in case of error
+//     if (req.files) {
+//       Object.values(req.files).flat().forEach(file => {
+//         if (fs.existsSync(file.path)) {
+//           fs.unlinkSync(file.path);
+//         }
+//       });
+//     }
+
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error saving building details',
+//       error: error.message
+//     });
+//   }
+// });
 
 
 
@@ -3696,31 +3707,134 @@ app.get('/builders/:id/properties', async (req, res) => {
   }
 });
 
-// Add building to builder
+// // Add building to builder - connection
+// app.post('/builders/:id/buildings', async (req, res) => {
+//   try {
+//     const builder = await Builder.findById(req.params.id);
+//     if (!builder) {
+//       return res.status(404).json({ message: 'Builder not found' });
+//     }
+
+//     const building = new Building({
+//       ...req.body,
+//       builder: req.params.id,
+//       buildingId: `BLD${Date.now()}`
+//     });
+
+//     console.log("building------------" , building)
+
+//     await building.save();
+
+//     // Update builder's buildings array
+//     builder.buildings.push(building._id);
+//     await builder.save();
+
+//     res.status(201).json({response :  building , builder});
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// });
+
+// app.post('/builders/:id/buildings', async (req, res) => {
+//   try {
+//     // Validate Builder ID
+//     if (!mongoose.isValidObjectId(req.params.id)) {
+//       return res.status(400).json({ message: 'Invalid Builder ID' });
+//     }
+
+//     console.log("BODY" , req.body)
+
+//     // Find the Builder
+//     const builder = await Builder.findById(req.params.id);
+//     if (!builder) {
+//       return res.status(404).json({ message: 'Builder not found' });
+//     }
+//     console.log("builder--find", builder)
+
+//     // Create the Building
+//     const buildingData = {
+//       ...req.body,
+//       builder: req.params.id, // Associate building with the builder
+//       buildingId: `BLD${Date.now()}` // Generate unique building ID
+//     };
+
+//     console.log("buildingData------", buildingData)
+    
+//     const building = new Building(buildingData);
+//     console.log("building------", building)
+
+//     // Save the Building
+//     await building.save();
+
+//     // Update Builder's `buildings` Array
+//     builder.buildings.push(building._id);
+//     await builder.save();
+
+//     res.status(201).json({
+//       message: 'Building successfully added to builder',
+//       building,
+//       builder
+//     });
+//   } catch (error) {
+//     console.error('Error adding building to builder:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
 app.post('/builders/:id/buildings', async (req, res) => {
   try {
+    // Validate Builder ID
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid Builder ID' });
+    }
+
+    // Find the Builder
     const builder = await Builder.findById(req.params.id);
     if (!builder) {
       return res.status(404).json({ message: 'Builder not found' });
     }
 
-    const building = new Building({
-      ...req.body,
+    // Create the Building
+    const { buildingId, ...buildingData } = req.body;
+
+    // Check if the building is already connected to the builder
+    const existingBuilding = await Building.findOne({
       builder: req.params.id,
-      buildingId: `BLD${Date.now()}`
+      buildingId: buildingId, // Assuming `buildingId` is sent in req.body
     });
 
+    if (existingBuilding) {
+      return res.status(400).json({
+        message: 'Building is already connected to this builder',
+        building: existingBuilding,
+      });
+    }
+
+    // If not already connected, create the building
+    const building = new Building({
+      ...buildingData,
+      builder: req.params.id,
+      buildingId: buildingId || `BLD${Date.now()}`, // Generate unique ID if not provided
+    });
+
+    // Save the Building
     await building.save();
 
-    // Update builder's buildings array
+    // Update Builder's `buildings` Array
     builder.buildings.push(building._id);
     await builder.save();
 
-    res.status(201).json(building);
+    res.status(201).json({
+      message: 'Building successfully added to builder',
+      building,
+      builder,
+    });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Error adding building to builder:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // Add property to builder
 app.post('/builders/:id/properties', async (req, res) => {
@@ -4137,14 +4251,83 @@ const disconnectBuildingFromProject = async (req, res) => {
 };
 
 // Connect property to project
+// app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
+//   try {
+//     const { projectId, propertyId } = req.params;
+//     console.log('Connecting property:', propertyId, 'to project:', projectId);
+
+//     // Find project using projectId and property using post_id
+//     const project = await Project.findOne({projectId : projectId});
+//     const property = await Property.findOne({ post_id: propertyId });
+
+//     console.log(project , property)
+
+//     if (!project) {
+//       console.log('Project not found:', projectId);
+//       return res.status(404).json({ error: 'Project not found' });
+//     }
+//     if (!property) {
+//       console.log('Property not found:', propertyId);
+//       return res.status(404).json({ error: 'Property not found' });
+//     }
+
+//     // Check if property is already connected
+//     if (project.connectedProperties.includes(property._id)) {
+//       return res.status(400).json({ error: 'Property is already connected to this project' });
+//     }
+
+//     // Update project's connected properties array with the property's _id
+//     project.connectedProperties.push(property._id);
+
+//     // Update project statistics
+//     project.statistics = project.statistics || {};
+//     project.statistics.totalProperties = (project.statistics.totalProperties || 0) + 1;
+//     if (property.available) {
+//       project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
+//     }
+
+//     // Update property with project reference
+//     property.projectId = project._id;
+
+//     // Save both documents
+//     await Promise.all([
+//       project.save(),
+//       property.save()
+//     ]);
+
+//     console.log('Successfully connected property to project');
+
+//     res.json({
+//       success: true,
+//       message: 'Property connected successfully',
+//       data: {
+//         projectId: project._id,
+//         propertyId: property.post_id,
+//         statistics: project.statistics
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('Error connecting property to project:', error);
+//     res.status(500).json({
+//       error: 'Failed to connect property to project',
+//       details: error.message
+//     });
+//   }
+// });
+
+
+// connection api to connect project to properties
 app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
   try {
     const { projectId, propertyId } = req.params;
     console.log('Connecting property:', propertyId, 'to project:', projectId);
 
     // Find project using projectId and property using post_id
-    const project = await Project.findById(projectId);
+    const project = await Project.findOne({ projectId: projectId });
     const property = await Property.findOne({ post_id: propertyId });
+
+    console.log(project, property);
 
     if (!project) {
       console.log('Project not found:', projectId);
@@ -4153,6 +4336,21 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
     if (!property) {
       console.log('Property not found:', propertyId);
       return res.status(404).json({ error: 'Property not found' });
+    }
+
+    // Validate and update project coordinates if missing or invalid
+    if (!project.location.coordinates || !Array.isArray(project.location.coordinates) || project.location.coordinates.length !== 2) {
+      console.log('Invalid or missing project coordinates, updating...');
+
+      // Example: Fetch previous valid coordinates from the property or another source
+      const previousCoordinates = property.location?.coordinates; // Assuming property has valid coordinates
+
+      if (previousCoordinates && Array.isArray(previousCoordinates) && previousCoordinates.length === 2) {
+        project.location.coordinates = previousCoordinates;
+      } else {
+        console.log('No valid coordinates found to update');
+        return res.status(400).json({ error: 'Invalid project coordinates and no fallback found' });
+      }
     }
 
     // Check if property is already connected
@@ -4170,8 +4368,9 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
       project.statistics.availableProperties = (project.statistics.availableProperties || 0) + 1;
     }
 
+    console.log(project._id)
     // Update property with project reference
-    property.projectId = project._id;
+    property.project = project._id;
 
     // Save both documents
     await Promise.all([
@@ -4199,6 +4398,7 @@ app.post('/api/projects/:projectId/properties/:propertyId', async (req, res) => 
     });
   }
 });
+
 
 // Disconnect property from project
 app.delete('/api/projects/:projectId/properties/:propertyId', async (req, res) => {
@@ -4266,7 +4466,7 @@ app.get('/api/projects/:projectId/properties', async (req, res) => {
     const { projectId } = req.params;
     console.log('Fetching properties for project:', projectId);
 
-    const project = await Project.findById(projectId)
+    const project = await Project.findOne({projectId:projectId})
       .populate('connectedProperties');
 
     if (!project) {
@@ -4277,7 +4477,10 @@ app.get('/api/projects/:projectId/properties', async (req, res) => {
     res.json({
       success: true,
       data: {
-        projectId: project._id,
+        project: {
+          name : project.name,
+          projectId: project.projectId
+        },
         properties: project.connectedProperties.map(property => ({
           id: property.post_id,
           title: property.post_title,
@@ -5478,8 +5681,19 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
     const { builderId } = req.params;
     console.log('Fetching properties for builder:', builderId);
 
+    // const builder = await Builder.findById(builderId)
+    //   .populate('properties');
+
     const builder = await Builder.findById(builderId)
-      .populate('properties');
+      .populate({
+        path: 'properties', // Populate the properties field
+        populate: {
+          path: 'project', // Populate the project field inside each property
+          model: 'Project', // Explicitly specify the model, optional if the schema reference is correct
+          select: 'name type status description' // Only include required fields, optional
+        }
+      });
+
 
     if (!builder) {
       console.log('Builder not found:', builderId);
@@ -5524,6 +5738,7 @@ app.get('/api/builders/:builderId/properties', async (req, res) => {
 // put Api for property visit
 app.put('/api/properties/visit/:id', async (req, res) => {
   console.log("visiting Status : " , req.params)
+  console.log("Vsiitng Staus : ", req.params)
   const { id } = req.params; // Property ID
   const { incrementBy } = req.body; // Number to increment by
 
@@ -5533,8 +5748,8 @@ app.put('/api/properties/visit/:id', async (req, res) => {
 
   try {
     const property = await Property.findByIdAndUpdate(
-      {_id : id},
-      { $inc: { visted: incrementBy || 1} }, // Increment the 'visted' field
+      { _id: id },
+      { $inc: { visted: incrementBy || 1 } }, // Increment the 'visted' field
       { new: true, runValidators: true } // Return the updated document
     );
 
@@ -5550,6 +5765,52 @@ app.put('/api/properties/visit/:id', async (req, res) => {
     res.status(500).json({ error: 'An error occurred while updating the visit count' });
   }
 });
+
+
+/* Search by property Name API */
+// Middleware for debouncing and caching
+const searchCache = new Map(); //20MB limit
+
+app.get('/api/search', async (req, res) => {
+  try {
+    const { query } = req; // Expecting `query` to contain `searchTerm`
+    const searchTerm = query.searchTerm?.trim();
+
+    console.log(searchTerm)
+
+    if (!searchTerm) {
+      return res.status(400).json({ message: 'Search term is required' });
+    }
+
+    // Check cache for existing results
+    if (searchCache.has(searchTerm)) {
+      return res.status(200).json({ results: searchCache.get(searchTerm) });
+    }
+
+    // Perform case-insensitive search on `post_title` and `city`
+    const results = await Property.find({
+      $or: [
+        { post_title: { $regex: searchTerm, $options: 'i' } },
+        { city: { $regex: searchTerm, $options: 'i' } }
+      ]
+    })
+      .limit(10) // Limit results to avoid performance issues
+      .lean(); // Use `lean()` for faster read performance
+
+    // Cache the results for future requests
+    searchCache.set(searchTerm, results);
+
+    return res.status(200).json({ results });
+  } catch (error) {
+    console.error('Error in search API:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// Clear the cache periodically to free up memory
+setInterval(() => {
+  searchCache.clear();
+}, 1000 * 60 * 5); // Clear every 5 minutes
 
 
 
