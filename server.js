@@ -4383,76 +4383,82 @@ app.post('/api/projects', upload.fields([
   try {
     console.log('Raw request body:', req.body);
     console.log('Files received:', req.files);
-    const galleryFiles = req.files;
-
     const projectData = JSON.parse(req.body.data);
-    console.log('Processed project data:======>>>>', projectData);
-
-    const project = new Project(projectData);
-    await project.save();
-    console.log('Project saved initially');
-
-    const uploadedImages = [];
+    console.log('Processed project data:', projectData);
+    // Initialize arrays to store uploaded image URLs
+    const uploadedGalleryImages = [];
     const uploadedFloorPlanImages = [];
-
-    if (req.files?.galleryList) {
-      for (const file of req.files.galleryList) {
+    // Handle gallery images upload
+    if (req.files['galleryList']) {
+      for (const file of req.files['galleryList']) {
         const params = {
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: `gallery_images/${uuid.v4()}_${file.originalname}`,
+          Bucket: process.env.AWS_BUCKETNAME,
+          Key: `projects/${projectData.name}/gallery/${uuid.v4()}${file.originalname}`,
           Body: fs.createReadStream(file.path),
+          ContentType: file.mimetype
         };
         const result = await s3.upload(params).promise();
-        uploadedImages.push(result.Location);
-      }
+        uploadedGalleryImages.push(result.Location);
 
-      if (uploadedImages.length > 0) {
-        project.gallery = project.gallery.map(category => ({
-          ...category,
-          images: uploadedImages
-        }));
+        // Clean up temp file
+        fs.unlinkSync(file.path);
       }
     }
-    console.log('Gallery images processed:', uploadedImages);
-
-    if (req.files?.floorPlanImages) {
-      for (const file of req.files.floorPlanImages) {
+    // Handle floor plan images upload
+    if (req.files['floorPlanImages']) {
+      for (const file of req.files['floorPlanImages']) {
         const params = {
-          Bucket: process.env.AWS_BUCKET_NAME,
-          Key: `floor_plan_images/${uuid.v4()}_${file.originalname}`,
+          Bucket: process.env.AWS_BUCKETNAME,
+          Key: `projects/${projectData.name}/floorplans/${uuid.v4()}${file.originalname}`,
           Body: fs.createReadStream(file.path),
+          ContentType: file.mimetype
         };
         const result = await s3.upload(params).promise();
         uploadedFloorPlanImages.push(result.Location);
-      }
 
-      if (uploadedFloorPlanImages.length > 0) {
-        project.floorPlans = project.floorPlans.map((plan, index) => ({
-          ...plan.toObject(),
-          image: uploadedFloorPlanImages[index] || plan.image
-        }));
+        // Clean up temp file
+        fs.unlinkSync(file.path);
       }
     }
-    console.log('Floor plan images processed:', uploadedFloorPlanImages);
-
-    await project.save();
-    console.log('Project saved with images');
-
-    if (req.files) {
-      Object.values(req.files).flat().forEach(file => {
-        fs.existsSync(file.path) && fs.unlinkSync(file.path);
+    // Update project data with uploaded image URLs
+    if (uploadedGalleryImages.length > 0) {
+      if (!projectData.gallery) projectData.gallery = [];
+      projectData.gallery.push({
+        category: 'General',
+        images: uploadedGalleryImages
       });
     }
-
-    res.status(201).json(project);
+    if (uploadedFloorPlanImages.length > 0 && projectData.floorPlans) {
+      // Map floor plan images to floor plans
+      projectData.floorPlans = projectData.floorPlans.map((plan, index) => ({
+        ...plan,
+        image: uploadedFloorPlanImages[index] || plan.image
+      }));
+    }
+    // Create and save project
+    const project = new Project(projectData);
+    await project.save();
+    res.status(201).json({
+      success: true,
+      message: 'Project created successfully',
+      data: project
+    });
   } catch (error) {
     console.error('Error creating project:', error);
+
+    // Clean up any uploaded files in case of error
     if (req.files) {
       Object.values(req.files).flat().forEach(file => {
-        fs.existsSync(file.path) && fs.unlinkSync(file.path);
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
       });
     }
-    res.status(400).json({ error: error.message });
+
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
