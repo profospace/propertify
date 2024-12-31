@@ -4595,7 +4595,7 @@ app.post('/api/projects', upload.fields([
     if (req.files['galleryList']) {
       for (const file of req.files['galleryList']) {
         const params = {
-          Bucket: process.env.AWS_BUCKETNAME,
+          Bucket: process.env.AWS_BUCKET_NAME,
           Key: `projects/${projectData.name}/gallery/${uuid.v4()}${file.originalname}`,
           Body: fs.createReadStream(file.path),
           ContentType: file.mimetype
@@ -4611,7 +4611,7 @@ app.post('/api/projects', upload.fields([
     if (req.files['floorPlanImages']) {
       for (const file of req.files['floorPlanImages']) {
         const params = {
-          Bucket: process.env.AWS_BUCKETNAME,
+          Bucket: process.env.AWS_BUCKET_NAME,
           Key: `projects/${projectData.name}/floorplans/${uuid.v4()}${file.originalname}`,
           Body: fs.createReadStream(file.path),
           ContentType: file.mimetype
