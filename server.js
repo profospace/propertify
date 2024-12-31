@@ -4587,6 +4587,8 @@ app.post('/api/projects', upload.fields([
     console.log('Raw request body:', req.body);
     console.log('Files received:', req.files);
     const projectData = JSON.parse(req.body.data);
+    projectData.projectId = `PRJ${Date.now()}`;
+
     console.log('Processed project data:', projectData);
     // Initialize arrays to store uploaded image URLs
     const uploadedGalleryImages = [];
